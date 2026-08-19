@@ -1,4 +1,4 @@
-package com.toyota.techmob.back_end;
+package com.toyota.techmob.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

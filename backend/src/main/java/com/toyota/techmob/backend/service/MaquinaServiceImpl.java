@@ -11,22 +11,14 @@ import com.toyota.techmob.backend.dto.DashboardResponseDTO;
 import com.toyota.techmob.backend.dto.IndicadorOEEDTO;
 import com.toyota.techmob.backend.dto.MaquinaDTO;
 import com.toyota.techmob.backend.exception.MaquinaNotFoundException;
-import com.toyota.techmob.backend.model.IndicadorOEE;
-import com.toyota.techmob.backend.model.Maquina;
+import com.toyota.techmob.backend.domain.Maquina;
+import com.toyota.techmob.backend.domain.IndicadorOEE;
 import com.toyota.techmob.backend.repository.IndicadorOEERepository;
 import com.toyota.techmob.backend.repository.MaquinaRepository;
 
 /**
  * Camada de serviço responsável pela lógica de negócio envolvendo Maquina
  * e seus indicadores de OEE.
- *
- * Antes, essa lógica (buscar máquina, buscar indicador mais recente, tratar
- * "não encontrado") provavelmente estava direto no controller. Isolar aqui
- * facilita testar sem precisar subir o contexto web do Spring, e evita
- * duplicar a lógica caso ela seja reutilizada por outro endpoint no futuro.
- *
- * Ajuste os nomes dos métodos do repositório (findByBancadaId, etc.) para
- * bater com os que já existem nos seus repositórios atuais.
  */
 @Service
 public class MaquinaServiceImpl implements MaquinaService {
@@ -38,7 +30,7 @@ public class MaquinaServiceImpl implements MaquinaService {
 
     @Autowired
     public MaquinaServiceImpl(MaquinaRepository maquinaRepository,
-                               IndicadorOEERepository indicadorOEERepository) {
+            IndicadorOEERepository indicadorOEERepository) {
         this.maquinaRepository = maquinaRepository;
         this.indicadorOEERepository = indicadorOEERepository;
     }
@@ -57,15 +49,14 @@ public class MaquinaServiceImpl implements MaquinaService {
         logger.debug("Buscando dashboard para maquinaId={}", maquinaId);
 
         Maquina maquina = maquinaRepository.findById(maquinaId)
-                .orElseThrow(() -> new MaquinaNotFoundException(
-                        "Máquina não encontrada para id=" + maquinaId));
+                .orElseThrow(() -> new MaquinaNotFoundException(maquinaId));
 
         // Pega o indicador de OEE mais recente calculado para essa máquina.
         // Se nenhum indicador foi calculado ainda (ex.: módulo Python nunca
         // rodou para essa máquina), retorna o dashboard sem indicador em vez
         // de estourar erro — o front-end decide como exibir esse estado vazio.
         IndicadorOEEDTO indicadorDTO = indicadorOEERepository
-                .findTopByMaquinaIdOrderByCalculadoEmDesc(maquinaId)
+                .findTopByMaquinaIdOrderByCriadoEmDesc(maquinaId)
                 .map(this::paraDTO)
                 .orElse(null);
 
@@ -79,20 +70,18 @@ public class MaquinaServiceImpl implements MaquinaService {
     private MaquinaDTO paraDTO(Maquina maquina) {
         return new MaquinaDTO(
                 maquina.getId(),
-                maquina.getBancadaId(),
+                maquina.getIdentificadorBancada(),
                 maquina.getNome(),
-                maquina.getStatusAtual()
-        );
+                maquina.getStatusOperacional());
     }
 
     private IndicadorOEEDTO paraDTO(IndicadorOEE indicador) {
         return new IndicadorOEEDTO(
-                indicador.getMaquinaId(),
-                indicador.getDisponibilidade(),
-                indicador.getPerformance(),
-                indicador.getQualidade(),
-                indicador.getOee(),
-                indicador.getCalculadoEm()
-        );
+                indicador.getMaquina().getId(),
+                indicador.getDisponibilidade().doubleValue(),
+                indicador.getPerformance().doubleValue(),
+                indicador.getQualidade().doubleValue(),
+                indicador.getOee().doubleValue(),
+                indicador.getCriadoEm().toInstant());
     }
 }
