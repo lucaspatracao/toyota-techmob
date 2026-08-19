@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,8 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.toyota.techmob.backend.dto.DashboardResponseDTO;
 import com.toyota.techmob.backend.dto.MaquinaDTO;
 import com.toyota.techmob.backend.exception.MaquinaNotFoundException;
-import com.toyota.techmob.backend.model.IndicadorOEE;
-import com.toyota.techmob.backend.model.Maquina;
+import com.toyota.techmob.backend.domain.Maquina;
+import com.toyota.techmob.backend.domain.IndicadorOEE;
 import com.toyota.techmob.backend.repository.IndicadorOEERepository;
 import com.toyota.techmob.backend.repository.MaquinaRepository;
 
@@ -25,10 +26,7 @@ import com.toyota.techmob.backend.repository.MaquinaRepository;
  * Testes unitários do MaquinaServiceImpl.
  *
  * Repositórios são mockados (Mockito) — nenhum destes testes toca o banco
- * de verdade nem depende do Supabase estar acessível. Isso permite validar
- * a lógica de negócio (o que acontece quando a máquina não existe, ou
- * quando ainda não há indicador calculado) independente do bloqueio de
- * rede que a equipe está enfrentando.
+ * de verdade nem depende do Supabase estar acessível.
  *
  * Rodar com: ./mvnw test
  */
@@ -46,20 +44,20 @@ class MaquinaServiceImplTest {
     private Maquina criarMaquinaExemplo() {
         Maquina maquina = new Maquina();
         maquina.setId(1L);
-        maquina.setBancadaId("BANCADA_SMART_01");
+        maquina.setIdentificadorBancada("BANCADA_SMART_01");
         maquina.setNome("Bancada Smart 4.0");
-        maquina.setStatusAtual("EM_PRODUCAO");
+        maquina.setStatusOperacional("EM_PRODUCAO");
         return maquina;
     }
 
-    private IndicadorOEE criarIndicadorExemplo() {
+    private IndicadorOEE criarIndicadorExemplo(Maquina maquina) {
         IndicadorOEE indicador = new IndicadorOEE();
-        indicador.setMaquinaId(1L);
-        indicador.setDisponibilidade(85.0);
-        indicador.setPerformance(90.0);
-        indicador.setQualidade(97.5);
-        indicador.setOee(74.6);
-        indicador.setCalculadoEm(Instant.parse("2026-08-18T10:00:00Z"));
+        indicador.setMaquina(maquina);
+        indicador.setDisponibilidade(BigDecimal.valueOf(85.0));
+        indicador.setPerformance(BigDecimal.valueOf(90.0));
+        indicador.setQualidade(BigDecimal.valueOf(97.5));
+        indicador.setOee(BigDecimal.valueOf(74.6));
+        indicador.setCriadoEm(OffsetDateTime.parse("2026-08-18T10:00:00Z"));
         return indicador;
     }
 
@@ -77,9 +75,10 @@ class MaquinaServiceImplTest {
     @Test
     void buscarDashboard_deveRetornarMaquinaEIndicador_quandoAmbosExistem() {
         maquinaService = new MaquinaServiceImpl(maquinaRepository, indicadorOEERepository);
-        when(maquinaRepository.findById(1L)).thenReturn(Optional.of(criarMaquinaExemplo()));
-        when(indicadorOEERepository.findTopByMaquinaIdOrderByCalculadoEmDesc(1L))
-                .thenReturn(Optional.of(criarIndicadorExemplo()));
+        Maquina maquina = criarMaquinaExemplo();
+        when(maquinaRepository.findById(1L)).thenReturn(Optional.of(maquina));
+        when(indicadorOEERepository.findTopByMaquinaIdOrderByCriadoEmDesc(1L))
+                .thenReturn(Optional.of(criarIndicadorExemplo(maquina)));
 
         DashboardResponseDTO resultado = maquinaService.buscarDashboard(1L);
 
@@ -91,7 +90,7 @@ class MaquinaServiceImplTest {
     void buscarDashboard_deveRetornarIndicadorNulo_quandoAindaNaoHaCalculoDeOEE() {
         maquinaService = new MaquinaServiceImpl(maquinaRepository, indicadorOEERepository);
         when(maquinaRepository.findById(1L)).thenReturn(Optional.of(criarMaquinaExemplo()));
-        when(indicadorOEERepository.findTopByMaquinaIdOrderByCalculadoEmDesc(1L))
+        when(indicadorOEERepository.findTopByMaquinaIdOrderByCriadoEmDesc(1L))
                 .thenReturn(Optional.empty());
 
         DashboardResponseDTO resultado = maquinaService.buscarDashboard(1L);
