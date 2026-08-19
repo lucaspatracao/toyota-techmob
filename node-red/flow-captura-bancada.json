@@ -1,0 +1,179 @@
+[
+    {
+        "id": "flow-techmob-oee",
+        "type": "tab",
+        "label": "TechMob - Captura Bancada Smart 4.0",
+        "disabled": false,
+        "info": "Flow de captura MQTT da Bancada Smart 4.0.\n\nFluxo: MQTT In -> Function (parse/validação) -> [File append CSV, Postgres status (opcional)]\n\nAntes de importar:\n1. Configure o nó MQTT broker (host/porta/credenciais do broker da bancada).\n2. Ajuste o(s) tópico(s) MQTT em 'mqtt-in-producao' (ex.: producao/pecas, maquina/status).\n3. Ajuste o caminho do arquivo no nó 'file-append-csv' para onde os CSVs devem ser gravados (ex.: montado em volume compartilhado com o módulo Python).\n4. Configure o nó Postgres com as credenciais do Supabase (host, schema techmob) caso deseje atualizar o status da máquina em tempo real.\n"
+    },
+    {
+        "id": "mqtt-in-producao",
+        "type": "mqtt in",
+        "z": "flow-techmob-oee",
+        "name": "MQTT In - producao/pecas",
+        "topic": "producao/pecas",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "mqtt-broker-bancada",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "function-parse-validacao"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt-in-status",
+        "type": "mqtt in",
+        "z": "flow-techmob-oee",
+        "name": "MQTT In - maquina/status",
+        "topic": "maquina/status",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "mqtt-broker-bancada",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 300,
+        "wires": [
+            [
+                "function-parse-validacao"
+            ]
+        ]
+    },
+    {
+        "id": "function-parse-validacao",
+        "type": "function",
+        "z": "flow-techmob-oee",
+        "name": "Parse + Validação do Payload",
+        "func": "// Normaliza o payload recebido da Bancada Smart 4.0 para o formato\n// de linha do CSV (dados_producao.csv), conforme o Documento do Projeto:\n// timestamp,bancada_id,status_operacional,pecas_boas,pecas_defeituosas,tempo_ciclo_segundos\n\nconst payload = msg.payload;\n\nif (!payload || typeof payload !== 'object') {\n    node.warn('Payload MQTT inválido, descartando mensagem.');\n    return null;\n}\n\nconst timestamp = payload.timestamp || new Date().toISOString();\nconst bancadaId = payload.bancada_id || 'BANCADA_SMART_01';\nconst statusOperacional = payload.status_operacional || 'DESCONHECIDO';\nconst pecasBoas = Number.isFinite(payload.pecas_boas) ? payload.pecas_boas : 0;\nconst pecasDefeituosas = Number.isFinite(payload.pecas_defeituosas) ? payload.pecas_defeituosas : 0;\nconst tempoCiclo = Number.isFinite(payload.tempo_ciclo_segundos) ? payload.tempo_ciclo_segundos : 0;\n\n// Validação mínima: descarta leituras sem status operacional reconhecido\nconst statusValidos = ['EM_PRODUCAO', 'PARADA', 'MANUTENCAO', 'DESCONHECIDO'];\nif (!statusValidos.includes(statusOperacional)) {\n    node.warn(`status_operacional inválido: ${statusOperacional}`);\n    return null;\n}\n\nconst linhaCsv = [\n    timestamp,\n    bancadaId,\n    statusOperacional,\n    pecasBoas,\n    pecasDefeituosas,\n    tempoCiclo\n].join(',');\n\nmsg.payload = linhaCsv + '\\n';\nmsg.dadosEstruturados = {\n    timestamp,\n    bancada_id: bancadaId,\n    status_operacional: statusOperacional,\n    pecas_boas: pecasBoas,\n    pecas_defeituosas: pecasDefeituosas,\n    tempo_ciclo_segundos: tempoCiclo\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 200,
+        "wires": [
+            [
+                "file-append-csv",
+                "function-preparar-status-postgres"
+            ]
+        ]
+    },
+    {
+        "id": "file-append-csv",
+        "type": "file",
+        "z": "flow-techmob-oee",
+        "name": "Grava linha no CSV do dia",
+        "filename": "/data/csv/dados_producao.csv",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": true,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 730,
+        "y": 140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "function-preparar-status-postgres",
+        "type": "function",
+        "z": "flow-techmob-oee",
+        "name": "Preparar UPDATE status_atual (opcional)",
+        "func": "// Atualiza apenas o status atual da máquina na tabela estrutural.\n// Uso opcional, conforme seção 5.1 do Documento do Projeto\n// (\"Nó PostgreSQL (opcional): atualiza o status atual da máquina\").\n\nconst dados = msg.dadosEstruturados;\n\nmsg.topic = 'UPDATE techmob.maquina SET status_atual = $1, atualizado_em = NOW() WHERE bancada_id = $2';\nmsg.payload = [dados.status_operacional, dados.bancada_id];\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 320,
+        "wires": [
+            [
+                "postgres-update-status"
+            ]
+        ]
+    },
+    {
+        "id": "postgres-update-status",
+        "type": "postgresql",
+        "z": "flow-techmob-oee",
+        "name": "Supabase - update status máquina",
+        "query": "",
+        "postgreSQLConfig": "postgres-config-supabase",
+        "split": false,
+        "rowsPerMsg": "1",
+        "outputs": 1,
+        "x": 780,
+        "y": 320,
+        "wires": [
+            [
+                "debug-status-atualizado"
+            ]
+        ]
+    },
+    {
+        "id": "debug-status-atualizado",
+        "type": "debug",
+        "z": "flow-techmob-oee",
+        "name": "Debug - status atualizado",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "mqtt-broker-bancada",
+        "type": "mqtt-broker",
+        "name": "Broker MQTT - Bancada Smart 4.0",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "postgres-config-supabase",
+        "type": "postgresqlConfig",
+        "name": "Supabase - techmob",
+        "host": "aws-0-sa-east-1.pooler.supabase.com",
+        "port": "5432",
+        "database": "postgres",
+        "ssl": true,
+        "max": "10",
+        "min": "1",
+        "idle": "1000",
+        "connectionTimeout": "10000"
+    }
+]
