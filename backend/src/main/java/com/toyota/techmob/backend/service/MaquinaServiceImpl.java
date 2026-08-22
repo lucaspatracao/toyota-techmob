@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.toyota.techmob.backend.dto.DashboardResponseDTO;
 import com.toyota.techmob.backend.dto.IndicadorOEEDTO;
@@ -19,8 +20,15 @@ import com.toyota.techmob.backend.repository.MaquinaRepository;
 /**
  * Camada de serviço responsável pela lógica de negócio envolvendo Maquina
  * e seus indicadores de OEE.
+ *
+ * @Transactional(readOnly = true) na classe garante que findById e
+ * findTopBy... em buscarDashboard rodem dentro da mesma transação/snapshot
+ * do banco, e evita LazyInitializationException caso algum campo lazy de
+ * Maquina (via IndicadorOEE.getMaquina()) precise ser acessado no futuro
+ * fora do escopo de uma sessão Hibernate já fechada.
  */
 @Service
+@Transactional(readOnly = true)
 public class MaquinaServiceImpl implements MaquinaService {
 
     private static final Logger logger = LoggerFactory.getLogger(MaquinaServiceImpl.class);
