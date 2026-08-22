@@ -38,8 +38,9 @@ public class MaquinaController {
         return ResponseEntity.ok(maquinaService.listarTodas());
     }
 
-    @GetMapping("/dashboard/{maquinaId}")
+    @GetMapping("/maquinas/{maquinaId}/dashboard")
     public ResponseEntity<DashboardResponseDTO> buscarDashboard(@PathVariable Long maquinaId) {
         return ResponseEntity.ok(maquinaService.buscarDashboard(maquinaId));
-    }
+}
+
 }
