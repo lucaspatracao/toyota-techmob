@@ -7,23 +7,21 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.toyota.techmob.backend.dto.DashboardResponseDTO;
-import com.toyota.techmob.backend.dto.MaquinaDTO;
-import com.toyota.techmob.backend.exception.MaquinaNotFoundException;
-import com.toyota.techmob.backend.domain.Maquina;
 import com.toyota.techmob.backend.domain.IndicadorOEE;
+import com.toyota.techmob.backend.domain.Maquina;
+import com.toyota.techmob.backend.dto.IndicadorOEEDTO;
+import com.toyota.techmob.backend.exception.MaquinaNotFoundException;
 import com.toyota.techmob.backend.repository.IndicadorOEERepository;
 import com.toyota.techmob.backend.repository.MaquinaRepository;
 
 /**
- * Testes unitários do MaquinaServiceImpl.
+ * Testes unitários do IndicadorOEEServiceImpl.
  *
  * Repositórios são mockados (Mockito) — nenhum destes testes toca o banco
  * de verdade nem depende do Supabase estar acessível.
@@ -31,7 +29,7 @@ import com.toyota.techmob.backend.repository.MaquinaRepository;
  * Rodar com: ./mvnw test
  */
 @ExtendWith(MockitoExtension.class)
-class MaquinaServiceImplTest {
+class IndicadorOEEServiceImplTest {
 
     @Mock
     private MaquinaRepository maquinaRepository;
@@ -39,7 +37,7 @@ class MaquinaServiceImplTest {
     @Mock
     private IndicadorOEERepository indicadorOEERepository;
 
-    private MaquinaService maquinaService;
+    private IndicadorOEEService indicadorOEEService;
 
     private Maquina criarMaquinaExemplo() {
         Maquina maquina = new Maquina();
@@ -50,61 +48,55 @@ class MaquinaServiceImplTest {
         return maquina;
     }
 
-    private IndicadorOEE criarIndicadorExemplo(Maquina maquina) {
+    private IndicadorOEE criarIndicadorExemplo(Maquina maquina, String criadoEm) {
         IndicadorOEE indicador = new IndicadorOEE();
         indicador.setMaquina(maquina);
         indicador.setDisponibilidade(BigDecimal.valueOf(85.0));
         indicador.setPerformance(BigDecimal.valueOf(90.0));
         indicador.setQualidade(BigDecimal.valueOf(97.5));
         indicador.setOee(BigDecimal.valueOf(74.6));
-        indicador.setCriadoEm(OffsetDateTime.parse("2026-08-18T10:00:00Z"));
+        indicador.setCriadoEm(OffsetDateTime.parse(criadoEm));
         return indicador;
     }
 
     @Test
-    void listarTodas_deveRetornarListaDeMaquinasMapeadaParaDTO() {
-        maquinaService = new MaquinaServiceImpl(maquinaRepository, indicadorOEERepository);
-        when(maquinaRepository.findAll()).thenReturn(List.of(criarMaquinaExemplo()));
-
-        List<MaquinaDTO> resultado = maquinaService.listarTodas();
-
-        assertThat(resultado).hasSize(1);
-        assertThat(resultado.get(0).getBancadaId()).isEqualTo("BANCADA_SMART_01");
-    }
-
-    @Test
-    void buscarDashboard_deveRetornarMaquinaEIndicador_quandoAmbosExistem() {
-        maquinaService = new MaquinaServiceImpl(maquinaRepository, indicadorOEERepository);
+    void historico_deveRetornarListaDeIndicadoresMapeadaParaDTO_quandoMaquinaExiste() {
+        indicadorOEEService = new IndicadorOEEServiceImpl(maquinaRepository, indicadorOEERepository);
         Maquina maquina = criarMaquinaExemplo();
-        when(maquinaRepository.findById(1L)).thenReturn(Optional.of(maquina));
-        when(indicadorOEERepository.findTopByMaquinaIdOrderByCriadoEmDesc(1L))
-                .thenReturn(Optional.of(criarIndicadorExemplo(maquina)));
 
-        DashboardResponseDTO resultado = maquinaService.buscarDashboard(1L);
+        when(maquinaRepository.existsById(1L)).thenReturn(true);
+        when(indicadorOEERepository.findByMaquinaIdOrderByPeriodoInicioDesc(1L))
+                .thenReturn(List.of(
+                        criarIndicadorExemplo(maquina, "2026-08-18T10:00:00Z"),
+                        criarIndicadorExemplo(maquina, "2026-08-17T10:00:00Z")));
 
-        assertThat(resultado.getMaquina().getBancadaId()).isEqualTo("BANCADA_SMART_01");
-        assertThat(resultado.getIndicadorAtual().getOee()).isEqualTo(74.6);
+        List<IndicadorOEEDTO> resultado = indicadorOEEService.historico(1L);
+
+        assertThat(resultado).hasSize(2);
+        assertThat(resultado.get(0).getMaquinaId()).isEqualTo(1L);
+        assertThat(resultado.get(0).getOee()).isEqualTo(74.6);
     }
 
     @Test
-    void buscarDashboard_deveRetornarIndicadorNulo_quandoAindaNaoHaCalculoDeOEE() {
-        maquinaService = new MaquinaServiceImpl(maquinaRepository, indicadorOEERepository);
-        when(maquinaRepository.findById(1L)).thenReturn(Optional.of(criarMaquinaExemplo()));
-        when(indicadorOEERepository.findTopByMaquinaIdOrderByCriadoEmDesc(1L))
-                .thenReturn(Optional.empty());
+    void historico_deveRetornarListaVazia_quandoMaquinaExisteMasNaoTemIndicadores() {
+        indicadorOEEService = new IndicadorOEEServiceImpl(maquinaRepository, indicadorOEERepository);
 
-        DashboardResponseDTO resultado = maquinaService.buscarDashboard(1L);
+        when(maquinaRepository.existsById(1L)).thenReturn(true);
+        when(indicadorOEERepository.findByMaquinaIdOrderByPeriodoInicioDesc(1L))
+                .thenReturn(List.of());
 
-        assertThat(resultado.getMaquina()).isNotNull();
-        assertThat(resultado.getIndicadorAtual()).isNull();
+        List<IndicadorOEEDTO> resultado = indicadorOEEService.historico(1L);
+
+        assertThat(resultado).isEmpty();
     }
 
     @Test
-    void buscarDashboard_deveLancarExcecao_quandoMaquinaNaoExiste() {
-        maquinaService = new MaquinaServiceImpl(maquinaRepository, indicadorOEERepository);
-        when(maquinaRepository.findById(999L)).thenReturn(Optional.empty());
+    void historico_deveLancarExcecao_quandoMaquinaNaoExiste() {
+        indicadorOEEService = new IndicadorOEEServiceImpl(maquinaRepository, indicadorOEERepository);
 
-        assertThatThrownBy(() -> maquinaService.buscarDashboard(999L))
+        when(maquinaRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> indicadorOEEService.historico(999L))
                 .isInstanceOf(MaquinaNotFoundException.class);
     }
 }
