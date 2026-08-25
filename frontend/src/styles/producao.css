@@ -1,0 +1,48 @@
+.pill-refresh {
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.pill-refresh:hover {
+  color: var(--text-primary);
+}
+
+.range-toggle {
+  display: flex;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.range-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 11px;
+}
+.range-toggle button.active {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-legend {
+  width: 14px;
+  height: 0;
+  border-top: 2px dashed #c7ccd8;
+  display: inline-block;
+}

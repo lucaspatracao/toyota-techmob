@@ -1,0 +1,79 @@
+.filters-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.filter-field label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+.filter-field select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  min-width: 170px;
+  font-size: 13px;
+}
+
+.filter-dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.filter-dates > span {
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+}
+.date-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--text-secondary);
+}
+.date-input input[type='date'] {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  color-scheme: dark;
+}
+
+.clear-filters-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  height: fit-content;
+}
+.clear-filters-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+@media (max-width: 900px) {
+  .clear-filters-btn {
+    margin-left: 0;
+  }
+}
