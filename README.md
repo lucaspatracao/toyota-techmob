@@ -1,4 +1,4 @@
-# TechMob 4.0 — Toytota do Brasil
+# TechMob 4.0 — Toyota do Brasil
 
 > **Projeto Integrador Interdisciplinar II — Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas.**
 > 
@@ -40,10 +40,12 @@ toyota-techmob/
 │   └── src/main/resources/
 │       └── application.properties
 │
-├── front-end/          # React (Create React App)
-│   └── src/
-│       ├── services/       # api.js, maquinaService.js (Axios)
-│       └── pages/          # Dashboard.jsx
+├── frontend/           # React + Vite
+│   ├── src/
+│   │   ├── components/ # Componentes reutilizáveis
+│   │   ├── data/       # Dados mockados temporariamente
+│   │   ├── pages/      # Dashboard, Produção e Histórico
+│   │   └── styles/     # Estilos da aplicação
 │
 └── infra/
     ├── docker-compose.yml  # não utilizado atualmente (ver decisões abaixo)
@@ -70,12 +72,12 @@ O back-end sobe na porta padrão do Spring Boot (`8080`) e se conecta ao Supabas
 ### Front-end
 
 ```bash
-cd front-end
+cd frontend
 npm install
-npm start
+npm run dev
 ```
 
-O front-end sobe em `localhost:3000` e consome a API via `services/api.js`.
+O front-end atualmente utiliza React + Vite e dados mockados para o desenvolvimento inicial da interface. A integração com a API Spring Boot será implementada posteriormente. Por padrão, o Vite disponibiliza a aplicação em http://localhost:5173.
 
 ---
 
