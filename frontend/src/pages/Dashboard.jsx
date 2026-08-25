@@ -4,8 +4,16 @@ import Panel from '../components/Panel.jsx'
 import ArcGauge from '../components/ArcGauge.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
 import SummaryDonut from '../components/SummaryDonut.jsx'
-import { oeeSeries, periodSummary } from '../data/mockData.js'
+import { LoadingState, ErrorState } from '../components/StateFeedback.jsx'
+import { usePolling } from '../hooks/usePolling.js'
+import { buscarDashboard } from '../services/machineService.js'
+import { adaptDashboard } from '../services/adapters.js'
+import { oeeSeries as mockOeeSeries, periodSummary as mockPeriodSummary } from '../data/mockData.js'
 import '../styles/dashboard.css'
+
+// ID da máquina — hoje só existe a Bancada Smart 4.0, então fixamos 1.
+// Quando houver seleção de máquina na UI, isso vira estado/prop.
+const MAQUINA_ID = import.meta.env.VITE_MAQUINA_ID || 1
 
 function KpiCard({ label, gauge, valueNode, trend, caption }) {
   return (
@@ -28,36 +36,73 @@ function KpiCard({ label, gauge, valueNode, trend, caption }) {
   )
 }
 
+function fmtPct(v) {
+  return v === undefined || v === null ? '-' : `${v.toFixed(1).replace('.', ',')}%`
+}
+
 export default function Dashboard() {
+  const { data, loading, error } = usePolling(
+    () => buscarDashboard(MAQUINA_ID).then(adaptDashboard),
+    [MAQUINA_ID],
+    5000
+  )
+
+  // Enquanto a API real não está disponível (ou falha), caímos para os
+  // dados mock — assim a tela nunca fica vazia durante o desenvolvimento
+  // visual. Quando a API estiver 100% integrada, essa checagem de `error`
+  // pode ser trocada por <ErrorState onRetry={...} /> puro, sem fallback.
+  const usingFallback = Boolean(error) && !data
+  const d = data ?? {
+    oee: 78.4,
+    disponibilidade: 85.7,
+    performance: 81.2,
+    qualidade: 94.8,
+    oeeSeries: mockOeeSeries,
+    resumo: { boas: 1186, rejeitadas: 62, tempoCicloMedio: 8.42 },
+    periodSummary: mockPeriodSummary,
+  }
+
+  if (loading && !data) return <LoadingState label="Carregando dashboard..." />
+
+  const totalResumo = (d.resumo?.boas ?? 0) + (d.resumo?.rejeitadas ?? 0)
+  const pctBoas = totalResumo ? ((d.resumo.boas / totalResumo) * 100).toFixed(1) : '0.0'
+  const pctRej = totalResumo ? ((d.resumo.rejeitadas / totalResumo) * 100).toFixed(1) : '0.0'
+
   return (
     <>
       <PageHeader title="Dashboard" subtitle="Visão geral do desempenho da máquina em tempo real." />
 
+      {usingFallback && (
+        <p className="api-fallback-note">
+          Não foi possível conectar à API ({String(error?.message)}) — exibindo dados de exemplo.
+        </p>
+      )}
+
       <div className="kpi-row">
         <KpiCard
           label="OEE"
-          gauge={<ArcGauge value={78.4} />}
+          gauge={<ArcGauge value={d.oee ?? 0} />}
           caption="Últimas 24 horas"
           trend={{ direction: 'up', value: '6,2%' }}
         />
         <KpiCard
           label="DISPONIBILIDADE"
-          valueNode={<div className="kpi-linear-value">85,7%</div>}
-          gauge={<ProgressBar value={85.7} color="var(--accent-green)" />}
+          valueNode={<div className="kpi-linear-value">{fmtPct(d.disponibilidade)}</div>}
+          gauge={<ProgressBar value={d.disponibilidade ?? 0} color="var(--accent-green)" />}
           caption="Últimas 24 horas"
           trend={{ direction: 'up', value: '4,3%' }}
         />
         <KpiCard
           label="PERFORMANCE"
-          valueNode={<div className="kpi-linear-value">81,2%</div>}
-          gauge={<ProgressBar value={81.2} color="var(--accent-blue-light)" />}
+          valueNode={<div className="kpi-linear-value">{fmtPct(d.performance)}</div>}
+          gauge={<ProgressBar value={d.performance ?? 0} color="var(--accent-blue-light)" />}
           caption="Últimas 24 horas"
           trend={{ direction: 'up', value: '3,1%' }}
         />
         <KpiCard
           label="QUALIDADE"
-          valueNode={<div className="kpi-linear-value">94,8%</div>}
-          gauge={<ProgressBar value={94.8} color="var(--accent-green)" />}
+          valueNode={<div className="kpi-linear-value">{fmtPct(d.qualidade)}</div>}
+          gauge={<ProgressBar value={d.qualidade ?? 0} color="var(--accent-green)" />}
           caption="Últimas 24 horas"
           trend={{ direction: 'up', value: '2,7%' }}
         />
@@ -77,7 +122,7 @@ export default function Dashboard() {
           }
         >
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={oeeSeries} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <AreaChart data={d.oeeSeries} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="oeeFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#4d8bff" stopOpacity={0.4} />
@@ -105,53 +150,57 @@ export default function Dashboard() {
 
         <Panel title="RESUMO (ÚLTIMAS 24 HORAS)" className="summary-panel">
           <div className="summary-donut-wrap">
-            <SummaryDonut good={1186} rejected={62} />
+            <SummaryDonut good={d.resumo?.boas ?? 0} rejected={d.resumo?.rejeitadas ?? 0} />
             <ul className="summary-legend">
               <li>
-                <span className="dot dot-green" /> Peças boas <b>1.186 (94,8%)</b>
+                <span className="dot dot-green" /> Peças boas <b>{(d.resumo?.boas ?? 0).toLocaleString('pt-BR')} ({pctBoas}%)</b>
               </li>
               <li>
-                <span className="dot dot-red" /> Peças rejeitadas <b>62 (5,0%)</b>
+                <span className="dot dot-red" /> Peças rejeitadas <b>{(d.resumo?.rejeitadas ?? 0).toLocaleString('pt-BR')} ({pctRej}%)</b>
               </li>
               <li>
-                <span className="dot dot-orange" /> Taxa de rejeição <b>5,0%</b>
+                <span className="dot dot-orange" /> Taxa de rejeição <b>{pctRej}%</b>
               </li>
             </ul>
           </div>
           <div className="summary-footer-row">
             <span>Tempo de ciclo médio</span>
-            <b>8,42 s</b>
+            <b>{d.resumo?.tempoCicloMedio?.toFixed?.(2)?.replace('.', ',') ?? '-'} s</b>
           </div>
         </Panel>
       </div>
 
       <Panel title="PRODUÇÃO (ÚLTIMAS 24 HORAS)" className="table-panel" style={{ marginTop: 20 }}>
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>PERÍODO</th>
-                <th>PEÇAS BOAS</th>
-                <th>PEÇAS REJEITADAS</th>
-                <th>TAXA DE REJEIÇÃO</th>
-                <th>TEMPO DE CICLO MÉDIO</th>
-                <th>OEE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periodSummary.map((row) => (
-                <tr key={row.periodo}>
-                  <td>{row.periodo}</td>
-                  <td>{row.boas}</td>
-                  <td>{row.rejeitadas}</td>
-                  <td>{row.taxa}</td>
-                  <td>{row.ciclo}</td>
-                  <td>{row.oee}</td>
+        {error && !data ? (
+          <ErrorState message="Não foi possível carregar a tabela de produção." />
+        ) : (
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>PERÍODO</th>
+                  <th>PEÇAS BOAS</th>
+                  <th>PEÇAS REJEITADAS</th>
+                  <th>TAXA DE REJEIÇÃO</th>
+                  <th>TEMPO DE CICLO MÉDIO</th>
+                  <th>OEE</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {d.periodSummary.map((row) => (
+                  <tr key={row.periodo}>
+                    <td>{row.periodo}</td>
+                    <td>{row.boas}</td>
+                    <td>{row.rejeitadas}</td>
+                    <td>{row.taxa}</td>
+                    <td>{row.ciclo}</td>
+                    <td>{row.oee}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panel>
 
       <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>

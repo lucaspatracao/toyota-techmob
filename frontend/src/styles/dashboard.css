@@ -100,3 +100,13 @@
 .summary-footer-row b {
   color: var(--text-primary);
 }
+
+.api-fallback-note {
+  background: var(--accent-orange-bg);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--accent-orange);
+  font-size: 12.5px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}

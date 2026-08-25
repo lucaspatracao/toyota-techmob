@@ -10,11 +10,43 @@ Reproduz fielmente as 3 telas de referência: **Dashboard**, **Produção** e
 
 ```bash
 npm install
+cp .env.example .env   # ajuste VITE_API_URL para onde o back-end estiver rodando
 npm run dev
 ```
 
 Abra `http://localhost:5173`. Build de produção: `npm run build` (gera a
 pasta `dist/`).
+
+## Status da integração com a API (Spring Boot)
+
+Os 4 endpoints abaixo foram **confirmados lendo o código real dos
+controllers** no repositório (`backend/src/main/java/.../controller/`):
+
+```
+GET /api/maquinas                          → List<MaquinaDTO>
+GET /api/dashboard/{maquinaId}              → DashboardResponseDTO
+GET /api/historico-producao/{maquinaId}     → List<HistoricoProducaoDTO>
+GET /api/indicadores/historico/{maquinaId}  → List<IndicadorOEEDTO>
+```
+
+A tela **Dashboard já está plugada de verdade** na API (`src/pages/Dashboard.jsx`):
+faz a chamada via `usePolling` (atualiza a cada 5s), mostra loading/erro, e
+só cai para os dados de exemplo (`mockData.js`) se a API não responder —
+isso evita tela em branco durante o desenvolvimento, mas pode ser removido
+depois que a API estiver 100% estável em produção.
+
+**Produção e Histórico ainda usam mock puro** — falta plugar
+`buscarHistoricoProducao` e `buscarHistoricoIndicadoresOEE`
+(`src/services/machineService.js`) seguindo o mesmo padrão do Dashboard.
+
+⚠️ **Pendente:** os nomes de campo dentro de cada DTO
+(`DashboardResponseDTO`, `MaquinaDTO`, `HistoricoProducaoDTO`,
+`IndicadorOEEDTO`) ainda não foram confirmados no código — só os nomes dos
+4 endpoints e o formato geral (record/DTO, não entidade JPA crua). Os
+"de-para" ficam isolados em `src/services/adapters.js`, com comentários
+`// confirmar:` nos campos que são palpite. Assim que alguém colar o
+conteúdo desses 4 arquivos de DTO, só esse arquivo precisa ser ajustado —
+nenhum componente de tela muda.
 
 ## Estrutura de pastas
 
@@ -36,11 +68,17 @@ techmob-frontend/
    │  ├─ SummaryDonut.jsx      # donut peças boas x rejeitadas (Resumo 24h)
    │  └─ Pagination.jsx        # paginação da tabela de Histórico
    ├─ pages/
-   │  ├─ Dashboard.jsx         # tela "Dashboard"
-   │  ├─ Producao.jsx          # tela "Produção"
-   │  └─ Historico.jsx         # tela "Histórico"
+   │  ├─ Dashboard.jsx         # tela "Dashboard" — já integrada à API real (com fallback)
+   │  ├─ Producao.jsx          # tela "Produção" — ainda em mock
+   │  └─ Historico.jsx         # tela "Histórico" — ainda em mock
+   ├─ services/
+   │  ├─ api.js                # instância axios (baseURL via VITE_API_URL)
+   │  ├─ machineService.js     # funções que chamam os 4 endpoints confirmados
+   │  └─ adapters.js           # "de-para" DTO da API → shape usado nos componentes
+   ├─ hooks/
+   │  └─ usePolling.js         # polling genérico (5s) com loading/error
    ├─ data/
-   │  └─ mockData.js           # dados fictícios (substituir pela API REST /api/...)
+   │  └─ mockData.js           # dados fictícios (fallback enquanto a API não responde)
    └─ styles/
       ├─ global.css            # tokens de cor/tipografia + reset
       ├─ layout.css, sidebar.css, pageheader.css, panel.css,
