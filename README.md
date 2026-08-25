@@ -6,11 +6,11 @@
 
 ---
 
-## 🎯 Objetivo
+## Objetivo
 
 Construir uma aplicação completa de coleta, processamento, armazenamento e visualização de dados de produção de uma máquina industrial (**Bancada Smart 4.0**), calculando o indicador **OEE (Overall Equipment Effectiveness)** e disponibilizando essa informação em um dashboard web em tempo (quase) real, hospedado em nuvem.
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 | Camada | Tecnologia | Responsabilidade |
 |---|---|---|
@@ -26,7 +26,7 @@ Fluxo geral: **Bancada Smart 4.0 → MQTT → Node-RED → CSV / PostgreSQL → 
 
 > Decisão de arquitetura: a persistência é **híbrida** — dados brutos ciclo a ciclo em CSV, dados estruturais e indicadores calculados no PostgreSQL (Supabase).
 
-## 📁 Estrutura do Repositório
+## Estrutura do Repositório
 
 ```
 toyota-techmob/
@@ -50,7 +50,7 @@ toyota-techmob/
     └── schema.sql          # fonte da verdade do schema (já aplicado no Supabase)
 ```
 
-## 🚀 Como rodar localmente
+## Como rodar localmente
 
 ### Pré-requisitos
 - Java 17+ e Maven
