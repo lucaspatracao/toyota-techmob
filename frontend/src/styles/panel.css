@@ -1,0 +1,105 @@
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.panel-header h2 {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-header p {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.panel-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grid-row {
+  display: flex;
+  gap: 18px;
+}
+.grid-row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Tabelas ---- */
+.data-table {
+  font-size: 13px;
+}
+.data-table thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+.data-table tbody td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.data-table tbody tr:hover {
+  background: var(--bg-card-hover);
+}
+.table-scroll {
+  overflow-x: auto;
+}
+
+.row-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chevron-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+.chevron-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-input);
+}
+
+.updated-note {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 900px) {
+  .grid-row {
+    flex-direction: column;
+  }
+}
