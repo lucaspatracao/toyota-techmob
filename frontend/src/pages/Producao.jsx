@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader.jsx'
 import Panel from '../components/Panel.jsx'
 import StatCard from '../components/StatCard.jsx'
 import SummaryDonut from '../components/SummaryDonut.jsx'
-import { productionSeries, hourlyBars, periodSummary } from '../data/mockData.js'
+import { productionSeries, hourlyBars } from '../data/mockData.js'
 import '../styles/producao.css'
 
 const RANGES = ['1H', '6H', '12H', '24H', '7D', '30D']
@@ -58,14 +58,14 @@ export default function Producao() {
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={productionSeries} margin={{ top: 10, right: 30, left: -10, bottom: 0 }}>
-              <CartesianGrid stroke="#1f2636" vertical={false} />
-              <XAxis dataKey="time" stroke="#5c6478" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis yAxisId="left" stroke="#5c6478" fontSize={11} tickLine={false} axisLine={false} label={{ value: 'Peças', position: 'insideTopLeft', fill: '#5c6478', fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" stroke="#5c6478" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
-              <Tooltip contentStyle={{ background: '#131826', border: '1px solid #1f2636', borderRadius: 8, fontSize: 12 }} />
-              <Bar yAxisId="left" dataKey="boas" stackId="a" fill="#22c55e" radius={[3, 3, 0, 0]} />
-              <Bar yAxisId="left" dataKey="rejeitadas" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
-              <Line yAxisId="right" type="monotone" dataKey="taxa" stroke="#c7ccd8" strokeDasharray="4 3" dot={{ r: 3, fill: '#c7ccd8' }} />
+              <CartesianGrid stroke="#E2E8F0" vertical={false} />
+              <XAxis dataKey="time" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} label={{ value: 'Peças', position: 'insideTopLeft', fill: '#64748B', fontSize: 11 }} />
+              <YAxis yAxisId="right" orientation="right" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+              <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 10px rgba(15,23,42,0.08)' }} />
+              <Bar yAxisId="left" dataKey="boas" stackId="a" fill="#22C55E" radius={[2, 2, 0, 0]} />
+              <Bar yAxisId="left" dataKey="rejeitadas" stackId="a" fill="#EF4444" radius={[0, 0, 0, 0]} />
+              <Line yAxisId="right" type="monotone" dataKey="taxa" stroke="#94A3B8" strokeDasharray="4 3" dot={{ r: 3, fill: '#94A3B8' }} />
             </ComposedChart>
           </ResponsiveContainer>
         </Panel>
@@ -93,43 +93,14 @@ export default function Producao() {
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={hourlyBars} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid stroke="#1f2636" vertical={false} />
-            <XAxis dataKey="hour" stroke="#5c6478" fontSize={10} tickLine={false} axisLine={false} interval={0} />
-            <YAxis stroke="#5c6478" fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip contentStyle={{ background: '#131826', border: '1px solid #1f2636', borderRadius: 8, fontSize: 12 }} />
-            <Bar dataKey="boas" fill="#22c55e" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="rejeitadas" fill="#ef4444" radius={[2, 2, 0, 0]} />
+            <CartesianGrid stroke="#E2E8F0" vertical={false} />
+            <XAxis dataKey="hour" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} interval={0} />
+            <YAxis stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 10px rgba(15,23,42,0.08)' }} />
+            <Bar dataKey="boas" fill="#22C55E" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="rejeitadas" fill="#EF4444" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </Panel>
-
-      <Panel title="RESUMO POR PERÍODO" style={{ marginTop: 20 }}>
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>PERÍODO</th>
-                <th>PEÇAS BOAS</th>
-                <th>PEÇAS REJEITADAS</th>
-                <th>TAXA DE REJEIÇÃO</th>
-                <th>TEMPO DE CICLO MÉDIO</th>
-                <th>OEE MÉDIO</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periodSummary.map((row) => (
-                <tr key={row.periodo}>
-                  <td>{row.periodo}</td>
-                  <td>{row.boas}</td>
-                  <td>{row.rejeitadas}</td>
-                  <td>{row.taxa}</td>
-                  <td>{row.ciclo}</td>
-                  <td>{row.oee}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </Panel>
 
       <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>

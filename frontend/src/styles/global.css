@@ -1,32 +1,81 @@
 :root {
-  /* Paleta extraída das telas de referência (SMART 4.0) */
-  --bg-app: #0a0e1a;
-  --bg-sidebar: #0b0f1c;
-  --bg-card: #131826;
-  --bg-card-hover: #161d2e;
-  --bg-input: #0f1420;
-  --border-subtle: #1f2636;
-  --border-strong: #2a3247;
+  /* Paleta redesenhada — indigo/violeta com gradientes, mantendo leitura industrial */
+  --bg-app: #F1F1F6;
+  --bg-app-grad: none;
+  --bg-sidebar: #201735;
+  --bg-sidebar-secondary: #201735;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FAF9FF;
+  --bg-input: #FFFFFF;
+  --border-subtle: #E5E1F7;
+  --border-strong: #C9C2ED;
 
-  --text-primary: #f5f7fa;
-  --text-secondary: #8b93a7;
-  --text-tertiary: #5c6478;
+  --text-primary: #181229;
+  --text-secondary: #4B4568;
+  --text-tertiary: #6E698A;
+  --text-on-dark: rgba(255, 255, 255, 0.94);
+  --text-on-dark-muted: rgba(230, 225, 255, 0.66);
 
-  --accent-blue: #2f6feb;
-  --accent-blue-light: #4d8bff;
-  --accent-green: #22c55e;
-  --accent-green-bg: rgba(34, 197, 94, 0.12);
-  --accent-red: #ef4444;
-  --accent-red-bg: rgba(239, 68, 68, 0.12);
-  --accent-orange: #f59e0b;
-  --accent-orange-bg: rgba(245, 158, 11, 0.12);
+  --primary: #4338CA;
+  --secondary: #6D28D9;
+  --gradient-brand: linear-gradient(135deg, #4F46E5 0%, #7C3AED 60%, #C026D3 100%);
+  --gradient-brand-soft: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(192, 38, 211, 0.12) 100%);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --accent-blue: #4F46E5;
+  --accent-blue-light: #6366F1;
+  --accent-blue-bg: rgba(79, 70, 229, 0.1);
+  --accent-green: #16A34A;
+  --accent-green-bg: rgba(22, 163, 74, 0.12);
+  --accent-red: #E11D48;
+  --accent-red-bg: rgba(225, 29, 72, 0.12);
+  --accent-orange: #D97706;
+  --accent-orange-bg: rgba(217, 119, 6, 0.12);
+  --accent-purple: #A21CAF;
+  --accent-purple-bg: rgba(162, 28, 175, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(30, 27, 75, 0.06);
+  --shadow-md: 0 2px 6px rgba(30, 27, 75, 0.08);
+  --shadow-lg: 0 6px 16px rgba(30, 27, 75, 0.12);
+  --shadow-glow: 0 2px 8px rgba(30, 27, 75, 0.1);
+
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+
+  --motion-fast: 0.15s ease;
+  --motion-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Acento de conteúdo (independente da sidebar) — paleta única Neutra */
+  --content-accent: #475569;
+  --content-accent-soft: #94A3B8;
+  --content-accent-grad: linear-gradient(135deg, #334155 0%, #475569 60%, #64748B 100%);
+  --content-accent-bg: rgba(71, 85, 105, 0.1);
+}
+
+/* ---- Tema escuro ---- */
+[data-theme='dark'] {
+  --bg-app: #100C24;
+  --bg-app-grad: none;
+  --bg-sidebar: #14102B;
+  --bg-sidebar-secondary: #2E1065;
+  --bg-card: #1A1533;
+  --bg-card-hover: #211A40;
+  --bg-input: #1A1533;
+  --border-subtle: #2E2755;
+  --border-strong: #423A72;
+
+  --text-primary: #F1EFFB;
+  --text-secondary: #C6C0E6;
+  --text-tertiary: #948FBA;
+  --text-on-dark: rgba(255, 255, 255, 0.94);
+  --text-on-dark-muted: rgba(230, 225, 255, 0.6);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -43,10 +92,14 @@ body,
 
 body {
   background: var(--bg-app);
+  background-image: var(--bg-app-grad);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
+  letter-spacing: 0.1px;
+  transition: background-color var(--motion-base), color var(--motion-base);
 }
 
 button {
@@ -83,6 +136,19 @@ a {
 
 /* Foco visível para acessibilidade */
 :focus-visible {
-  outline: 2px solid var(--accent-blue-light);
+  outline: 2px solid var(--accent-blue);
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeita preferência do usuário por menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

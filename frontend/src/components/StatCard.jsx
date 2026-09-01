@@ -30,10 +30,10 @@ const ICONS = {
 }
 
 const ICON_BG = {
-  total: 'var(--accent-blue)',
-  good: 'var(--accent-green)',
-  rejected: 'var(--accent-red)',
-  rate: 'var(--accent-orange)',
+  total: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+  good: 'linear-gradient(135deg, #16A34A, #22C55E)',
+  rejected: 'linear-gradient(135deg, #E11D48, #F43F5E)',
+  rate: 'linear-gradient(135deg, #D97706, #F59E0B)',
 }
 
 export default function StatCard({ icon = 'total', label, value, unit, caption, trend }) {

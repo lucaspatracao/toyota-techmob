@@ -3,10 +3,16 @@
   gap: 14px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 18px;
+  border-radius: var(--radius-md);
+  padding: 20px;
   flex: 1;
   min-width: 0;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--motion-base);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .stat-card-icon {
