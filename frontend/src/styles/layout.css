@@ -4,17 +4,21 @@
   background: var(--bg-app);
 }
 
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .app-content {
   flex: 1;
-  padding: 28px 32px 40px;
+  padding: 24px 32px 40px;
   min-width: 0;
 }
 
 @media (max-width: 1024px) {
-  .app-shell {
-    flex-direction: column;
-  }
   .app-content {
-    padding: 20px;
+    padding: 20px 20px 32px;
   }
 }

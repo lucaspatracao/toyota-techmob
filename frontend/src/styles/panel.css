@@ -1,8 +1,13 @@
 .panel {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--motion-base);
+}
+.panel:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .panel-header {
@@ -65,7 +70,13 @@
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
+.data-table tbody tr {
+  transition: background var(--motion-fast);
+}
 .data-table tbody tr:hover {
+  background: var(--bg-card-hover);
+}
+.data-table thead th {
   background: var(--bg-card-hover);
 }
 .table-scroll {
@@ -86,6 +97,7 @@
   align-items: center;
   padding: 4px;
   border-radius: 4px;
+  transition: color var(--motion-fast), background var(--motion-fast);
 }
 .chevron-btn:hover {
   color: var(--text-primary);

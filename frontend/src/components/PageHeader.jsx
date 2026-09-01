@@ -10,13 +10,21 @@ function useClock() {
   )}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
 }
 
-export default function PageHeader({ title, subtitle, right }) {
+/**
+ * Cabeçalho de página.
+ * - `breadcrumb`: trilha curta acima do título (ex.: "OPERAÇÃO / DASHBOARD OEE").
+ * - `eyebrow`: rótulo pequeno acima do título (ex.: "MONITORAMENTO DE EFICIÊNCIA FABRIL").
+ * - `title`/`subtitle`: mantidos por compatibilidade com as telas existentes.
+ */
+export default function PageHeader({ breadcrumb, eyebrow, title, subtitle, right }) {
   const timestamp = useClock()
   return (
     <header className="page-header">
-      <div>
+      <div className="page-header-left">
+        {breadcrumb && <p className="page-breadcrumb">{breadcrumb}</p>}
+        {eyebrow && <p className="page-eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
-        <p>{subtitle}</p>
+        {subtitle && <p className="page-subtitle">{subtitle}</p>}
       </div>
       <div className="page-header-right">
         <span className="pill pill-online">
