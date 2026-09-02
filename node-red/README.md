@@ -5,9 +5,9 @@
 1. **MQTT In** — inscreve nos tópicos `producao/pecas` e `maquina/status` publicados pela Bancada Smart 4.0.
 2. **Function (parse/validação)** — normaliza o payload recebido para o formato de linha do CSV definido no Documento do Projeto (`timestamp,bancada_id,status_operacional,pecas_boas,pecas_defeituosas,tempo_ciclo_segundos`), descartando mensagens com status operacional inválido.
 3. **File (append)** — grava cada leitura como uma nova linha no CSV de produção (`/data/csv/dados_producao.csv`), que depois é consumido pelo módulo Python.
-4. **Postgres (opcional)** — atualiza o status atual da máquina diretamente na tabela `techmob.maquina` no Supabase, para refletir o estado em tempo real sem esperar o processamento em lote do Python.
+4. **MySQL (opcional)** — atualiza o status atual da máquina diretamente na tabela `maquina` do banco local, para refletir o estado em tempo real sem esperar o processamento em lote do Python.
 
-Requer os nós `node-red-node-postgresql` (ou `@node-red-contrib/postgresql`) e o parser MQTT nativo do Node-RED.
+Requer os nós MQTT nativos do Node-RED e, se a integração com o banco estiver ativa, o nó de conexão MySQL (`node-red-node-mysql` ou equivalente).
 
 ## Como importar
 
@@ -15,7 +15,7 @@ Requer os nós `node-red-node-postgresql` (ou `@node-red-contrib/postgresql`) e 
 2. Antes de fazer o deploy, ajuste:
    - **Nó `mqtt-broker-bancada`**: host/porta reais do broker MQTT da bancada (hoje configurado como `localhost:1883` — placeholder).
    - **Nó `file-append-csv`**: caminho do arquivo CSV (`/data/csv/dados_producao.csv`). Se o módulo Python roda na mesma máquina, aponte para o mesmo diretório que o `--csv` do `oee_calculator.py` vai ler.
-   - **Nó `postgres-config-supabase`**: senha do Supabase (`DB_PASSWORD`) — configurar via variável de ambiente do Node-RED, nunca hardcoded no flow.
+   - **Nó `mysql-config-local`**: host, porta, usuário, senha e nome do banco local (`techmob`). Use as credenciais do MySQL Workbench local, por exemplo `root` / `123456`.
 3. Confirme os nomes dos tópicos MQTT (`producao/pecas`, `maquina/status`) contra a documentação real da bancada — os nomes usados aqui são os exemplos citados no Documento do Projeto (seção 5.1).
 4. Deploy.
 
@@ -38,4 +38,4 @@ Se a bancada publicar em formato diferente, ajuste o nó `function-parse-validac
 
 ## Próximo passo
 
-Depois de validar que o CSV está sendo gravado corretamente, use `data-science/oee_calculator.py` para calcular os indicadores a partir dele.
+Depois de validar que o CSV está sendo gravado corretamente, use `data-science/oee_calculator.py` para calcular os indicadores a partir dele e gravar os dados em MySQL local.
