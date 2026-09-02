@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "indicador_oee", schema = "techmob")
+@Table(name = "indicador_oee")
 @Getter
 @Setter
 @NoArgsConstructor

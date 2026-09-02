@@ -159,36 +159,36 @@ def media_movel_oee(df: pd.DataFrame, config: ConfiguracaoOEE, janela: str = "1h
 
 
 # ---------------------------------------------------------------------------
-# Persistência no PostgreSQL (Supabase) - tabela techmob.indicador_oee
+# Persistência no MySQL - tabela indicador_oee
 # ---------------------------------------------------------------------------
-def gravar_indicador_postgres(maquina_id: int, indicadores: dict, calculado_em: datetime | None = None):
+def gravar_indicador_mysql(maquina_id: int, indicadores: dict, calculado_em: datetime | None = None):
     """
-    Grava o indicador calculado na tabela `techmob.indicador_oee`.
+    Grava o indicador calculado na tabela `indicador_oee`.
     Requer as variáveis de ambiente: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD.
 
-    Import de sqlalchemy/psycopg2 feito localmente para permitir rodar o script
+    Import de sqlalchemy/pymysql feito localmente para permitir rodar o script
     apenas em modo de cálculo (sem gravar no banco) quando essas libs/env vars
     não estiverem disponíveis.
     """
     from sqlalchemy import create_engine, text
 
     host = os.environ["DB_HOST"]
-    port = os.environ.get("DB_PORT", "5432")
+    port = os.environ.get("DB_PORT", "3306")
     dbname = os.environ["DB_NAME"]
     user = os.environ["DB_USER"]
     password = os.environ["DB_PASSWORD"]
 
-    url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
-    engine = create_engine(url, connect_args={"sslmode": "require"})
+    url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
+    engine = create_engine(url)
 
-    calculado_em = calculado_em or datetime.now(timezone.utc)
+    criado_em = calculado_em or datetime.now(timezone.utc)
 
     query = text(
         """
-        INSERT INTO techmob.indicador_oee
-            (maquina_id, disponibilidade, performance, qualidade, oee, calculado_em)
+        INSERT INTO indicador_oee
+            (maquina_id, disponibilidade, performance, qualidade, oee, criado_em)
         VALUES
-            (:maquina_id, :disponibilidade, :performance, :qualidade, :oee, :calculado_em)
+            (:maquina_id, :disponibilidade, :performance, :qualidade, :oee, :criado_em)
         """
     )
 
@@ -201,10 +201,10 @@ def gravar_indicador_postgres(maquina_id: int, indicadores: dict, calculado_em: 
                 "performance": indicadores["performance"],
                 "qualidade": indicadores["qualidade"],
                 "oee": indicadores["oee"],
-                "calculado_em": calculado_em,
+                "criado_em": criado_em,
             },
         )
-    logger.info("Indicador OEE gravado no Supabase para maquina_id=%s", maquina_id)
+    logger.info("Indicador OEE gravado no MySQL para maquina_id=%s", maquina_id)
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ def main():
     parser.add_argument("--csv", required=True, help="Caminho do CSV de produção")
     parser.add_argument("--bancada-id", default=None, help="Filtrar por bancada_id (ex.: BANCADA_SMART_01)")
     parser.add_argument("--maquina-id", type=int, default=None, help="ID da máquina no banco (para gravação)")
-    parser.add_argument("--gravar-banco", action="store_true", help="Gravar o resultado no Supabase")
+    parser.add_argument("--gravar-banco", action="store_true", help="Gravar o resultado no MySQL")
     parser.add_argument("--tendencia", action="store_true", help="Calcular também a série de OEE por hora + média móvel")
     args = parser.parse_args()
 
@@ -241,7 +241,7 @@ def main():
     if args.gravar_banco:
         if args.maquina_id is None:
             raise ValueError("--maquina-id é obrigatório ao usar --gravar-banco")
-        gravar_indicador_postgres(args.maquina_id, indicadores)
+        gravar_indicador_mysql(args.maquina_id, indicadores)
 
 
 if __name__ == "__main__":
