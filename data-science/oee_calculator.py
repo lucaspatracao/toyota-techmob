@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("oee_calculator")
 
 
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------   
 # Configuração dos parâmetros do OEE
 # ---------------------------------------------------------------------------
 # Estes valores dependem da especificação física/operacional da Bancada Smart 4.0
