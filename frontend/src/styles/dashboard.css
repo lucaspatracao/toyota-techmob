@@ -1,3 +1,11 @@
+/* Sobrescreve o acento cinza padrão apenas nesta página (OEE consolidado + gráfico de tendência) */
+.dashboard-page {
+  --content-accent: #35c99d;
+  --content-accent-soft: #35c99d;
+  --content-accent-grad: linear-gradient(135deg, #2aa885 0%, #35c99d 55%, #4ad9ae 100%);
+  --content-accent-bg: rgba(53, 201, 157, 0.12);
+}
+
 .kpi-row {
   display: flex;
   gap: 18px;

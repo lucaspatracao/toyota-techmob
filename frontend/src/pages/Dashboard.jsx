@@ -94,7 +94,7 @@ export default function Dashboard() {
   const trendPoints = [42, 46, 44, 50, 55, 53, 58, 62, 60, 66, 70, 68, 74, 78, d.oee ?? 78]
 
   return (
-    <div>
+    <div className="dashboard-page">
       <PageHeader
         breadcrumb="OPERAÇÃO / DASHBOARD OEE"
         eyebrow="MONITORAMENTO DE EFICIÊNCIA FABRIL"
