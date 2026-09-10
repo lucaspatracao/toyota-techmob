@@ -3,13 +3,12 @@ import PageHeader from '../components/PageHeader.jsx'
 import Panel from '../components/Panel.jsx'
 import StatCard from '../components/StatCard.jsx'
 import Pagination from '../components/Pagination.jsx'
-import { useDemoData } from '../hooks/useDemoData.js'
+import { historicoRows } from '../data/mockData.js'
 import '../styles/historico.css'
 
 const DOT_CLASS = { green: 'dot-green', orange: 'dot-orange', red: 'dot-red' }
 
 export default function Historico() {
-  const { data } = useDemoData()
   const [page, setPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateFrom, setDateFrom] = useState('2024-05-11')
@@ -22,9 +21,9 @@ export default function Historico() {
   // referência).
   const allRows = useMemo(() => {
     const rows = []
-    for (let i = 0; i < 23; i++) rows.push(...data.history)
+    for (let i = 0; i < 23; i++) rows.push(...historicoRows)
     return rows.slice(0, 225)
-  }, [data.history])
+  }, [])
 
   const totalPages = Math.ceil(allRows.length / itemsPerPage)
   const startItem = (page - 1) * itemsPerPage + 1
@@ -160,7 +159,7 @@ export default function Historico() {
         />
       </Panel>
 
-      <p className="updated-note">Dados fictícios atualizados automaticamente a cada 10 segundos.</p>
+      <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>
     </>
   )
 }

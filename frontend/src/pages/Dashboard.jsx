@@ -1,10 +1,16 @@
 import PageHeader from '../components/PageHeader.jsx'
 import Panel from '../components/Panel.jsx'
-import { useDemoData } from '../hooks/useDemoData.js'
+import { LoadingState } from '../components/StateFeedback.jsx'
+import { usePolling } from '../hooks/usePolling.js'
+import { buscarDashboard } from '../services/machineService.js'
+import { adaptDashboard } from '../services/adapters.js'
+import { periodSummary as mockPeriodSummary } from '../data/mockData.js'
 import '../styles/dashboard.css'
 
 // ID da máquina — hoje só existe a Bancada Smart 4.0, então fixamos 1.
 // Quando houver seleção de máquina na UI, isso vira estado/prop.
+const MAQUINA_ID = import.meta.env.VITE_MAQUINA_ID || 1
+
 function KpiCard({ label, value, unit, trend, caption, featured, progress }) {
   return (
     <div className={`panel kpi-card${featured ? ' kpi-card-featured' : ''}`}>
@@ -63,8 +69,27 @@ function fmtPct(v) {
 }
 
 export default function Dashboard() {
-  const { data } = useDemoData()
-  const d = data.dashboard
+  const { data, loading, error } = usePolling(
+    () => buscarDashboard(MAQUINA_ID).then(adaptDashboard),
+    [MAQUINA_ID],
+    5000
+  )
+
+  // Enquanto a API real não está disponível (ou falha), caímos para os
+  // dados mock — assim a tela nunca fica vazia durante o desenvolvimento
+  // visual. Quando a API estiver 100% integrada, essa checagem de `error`
+  // pode ser trocada por <ErrorState onRetry={...} /> puro, sem fallback.
+  const usingFallback = Boolean(error) && !data
+  const d = data ?? {
+    oee: 78.4,
+    disponibilidade: 92.1,
+    performance: 84.7,
+    qualidade: 99.6,
+    resumo: { boas: 1248, rejeitadas: 62, tempoCicloMedio: 12.8 },
+    periodSummary: mockPeriodSummary,
+  }
+
+  if (loading && !data) return <LoadingState label="Carregando dashboard..." />
 
   const trendPoints = [42, 46, 44, 50, 55, 53, 58, 62, 60, 66, 70, 68, 74, 78, d.oee ?? 78]
 
@@ -87,6 +112,34 @@ export default function Dashboard() {
           </>
         }
       />
+
+      {usingFallback && (
+        <div className="api-fallback-banner">
+          <svg
+            className="api-fallback-banner-icon"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M10.29 3.86 1.82 18a1 1 0 0 0 .86 1.5h18.64a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0Z" />
+            <path d="M12 9v4M12 17h.01" />
+          </svg>
+          <div className="api-fallback-banner-text">
+            <strong>Modo de demonstração — dados locais sendo exibidos</strong>
+            <span>Não foi possível conectar à API ({String(error?.message)})</span>
+          </div>
+          <button className="api-fallback-reconnect" onClick={() => window.location.reload()}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-3-6.7" />
+              <path d="M21 3v6h-6" />
+            </svg>
+            Reconectar
+          </button>
+        </div>
+      )}
 
       <div className="kpi-row">
         <KpiCard
@@ -158,7 +211,7 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      <p className="updated-note">Dados fictícios atualizados automaticamente a cada 10 segundos.</p>
+      <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>
     </div>
   )
 }
