@@ -32,21 +32,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("oee_calculator")
 
 
-# ---------------------------------------------------------------------------   
-# Configuração dos parâmetros do OEE
-# ---------------------------------------------------------------------------
-# Estes valores dependem da especificação física/operacional da Bancada Smart 4.0
-# e devem ser ajustados pela equipe (ou movidos para a tabela `maquina` no banco,
-# como colunas `tempo_planejado_segundos` e `capacidade_teorica_pecas_seg`).
 @dataclass
 class ConfiguracaoOEE:
-    tempo_planejado_segundos: float = 8 * 3600   # ex.: turno de 8h
-    capacidade_teorica_pecas_seg: float = 1 / 10  # ex.: 1 peça a cada 10s (ajustar)
+    tempo_planejado_segundos: float = 8 * 3600
+    capacidade_teorica_pecas_seg: float = 1 / 10
 
 
-# ---------------------------------------------------------------------------
-# Leitura e validação
-# ---------------------------------------------------------------------------
 COLUNAS_ESPERADAS = [
     "timestamp",
     "bancada_id",
@@ -79,9 +70,6 @@ def filtrar_por_maquina(df: pd.DataFrame, bancada_id: str | None) -> pd.DataFram
     return df[df["bancada_id"] == bancada_id].reset_index(drop=True)
 
 
-# ---------------------------------------------------------------------------
-# Estatística descritiva
-# ---------------------------------------------------------------------------
 def estatisticas_descritivas(df: pd.DataFrame) -> dict:
     """Estatísticas descritivas do turno/período: médias, desvio padrão, min/max."""
     return {
@@ -94,15 +82,11 @@ def estatisticas_descritivas(df: pd.DataFrame) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Cálculo do OEE (fórmulas da seção 5.3 do documento)
-# ---------------------------------------------------------------------------
 def calcular_oee(df: pd.DataFrame, config: ConfiguracaoOEE) -> dict:
     total_pecas_boas = int(df["pecas_boas"].sum())
     total_pecas_defeituosas = int(df["pecas_defeituosas"].sum())
     quantidade_total_produzida = total_pecas_boas + total_pecas_defeituosas
 
-    # Tempo operacional real: soma dos tempos de ciclo apenas quando em produção
     em_producao = df[df["status_operacional"] == "EM_PRODUCAO"]
     tempo_operacional_real = float(em_producao["tempo_ciclo_segundos"].sum())
 
@@ -124,7 +108,6 @@ def calcular_oee(df: pd.DataFrame, config: ConfiguracaoOEE) -> dict:
     else:
         qualidade = 0.0
 
-    # OEE = Disponibilidade x Performance x Qualidade (as três em fração, resultado em %)
     oee = (disponibilidade / 100) * (performance / 100) * (qualidade / 100) * 100
 
     return {
@@ -158,9 +141,6 @@ def media_movel_oee(df: pd.DataFrame, config: ConfiguracaoOEE, janela: str = "1h
     return df_oee
 
 
-# ---------------------------------------------------------------------------
-# Persistência no MySQL - tabela indicador_oee
-# ---------------------------------------------------------------------------
 def gravar_indicador_mysql(maquina_id: int, indicadores: dict, calculado_em: datetime | None = None):
     """
     Grava o indicador calculado na tabela `indicador_oee`.
@@ -207,9 +187,6 @@ def gravar_indicador_mysql(maquina_id: int, indicadores: dict, calculado_em: dat
     logger.info("Indicador OEE gravado no MySQL para maquina_id=%s", maquina_id)
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="Cálculo do OEE - TechMob 4.0")
     parser.add_argument("--csv", required=True, help="Caminho do CSV de produção")
