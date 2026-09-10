@@ -5,6 +5,7 @@ import Topbar from './components/Topbar.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Producao from './pages/Producao.jsx'
 import Historico from './pages/Historico.jsx'
+import { DemoDataProvider } from './hooks/useDemoData.js'
 import './styles/layout.css'
 
 export default function App() {
@@ -30,8 +31,9 @@ export default function App() {
   }
 
   return (
-    <HashRouter>
-      <div className="app-shell">
+    <DemoDataProvider>
+      <HashRouter>
+        <div className="app-shell">
         <Sidebar
           collapsed={collapsed}
           mobileOpen={mobileOpen}
@@ -49,7 +51,8 @@ export default function App() {
             </Routes>
           </main>
         </div>
-      </div>
-    </HashRouter>
+        </div>
+      </HashRouter>
+    </DemoDataProvider>
   )
 }
