@@ -23,6 +23,7 @@ export function usePolling(fetchFn, deps = [], intervalMs = 5000) {
     let cancelled = false
     let intervalId
 
+    // Evita exibir dados do modo anterior enquanto a nova fonte responde.
     setData(null)
     setError(null)
     setLoading(true)

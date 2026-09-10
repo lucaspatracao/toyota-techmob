@@ -25,6 +25,7 @@
 export function adaptDashboard(dto) {
   if (!dto) return null
 
+  // O backend só considera a dashboard pronta quando há indicador OEE calculado.
   const indicador = dto.indicadorAtual ?? (Object.prototype.hasOwnProperty.call(dto, 'indicadorAtual') ? null : dto)
   if (!indicador) return null
   if ([indicador.oee, indicador.disponibilidade, indicador.performance, indicador.qualidade].every((value) => value == null)) {

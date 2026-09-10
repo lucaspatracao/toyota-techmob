@@ -75,6 +75,7 @@ export default function Dashboard({ simulationEnabled = true }) {
     5000
   )
 
+  // O mock permanece disponível apenas no modo de simulação; o modo real nunca inventa valores.
   const usingFallback = simulationEnabled && Boolean(error) && !data
   const d = simulationEnabled ? data ?? {
     oee: 78.4,
@@ -85,6 +86,7 @@ export default function Dashboard({ simulationEnabled = true }) {
     periodSummary: mockPeriodSummary,
   } : data
 
+  // Sem indicador da SMART 4.0, mantém a tela em espera e não monta os gráficos.
   if (!simulationEnabled && !d) {
     return <LoadingState label={error ? 'Aguardando dados da SMART 4.0...' : 'Buscando dados da SMART 4.0...'} />
   }

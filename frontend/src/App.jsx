@@ -11,6 +11,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('smart40-theme') || 'light')
+  // Controla globalmente se a dashboard usa o modo de demonstração ou a SMART 4.0 real.
   const [simulationEnabled, setSimulationEnabled] = useState(true)
 
   useEffect(() => {

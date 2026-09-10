@@ -56,6 +56,7 @@ export default function Topbar({
       </div>
 
       <div className="topbar-right">
+        {/* Ao desligar, a Dashboard abandona o fallback mock e aguarda a API real. */}
         <button
           type="button"
           className={`simulation-toggle ${simulationEnabled ? 'simulation-on' : 'simulation-off'}`}
