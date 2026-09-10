@@ -68,25 +68,25 @@ function fmtPct(v) {
   return v === undefined || v === null ? '-' : `${v.toFixed(1).replace('.', ',')}%`
 }
 
-export default function Dashboard() {
+export default function Dashboard({ simulationEnabled = true }) {
   const { data, loading, error } = usePolling(
     () => buscarDashboard(MAQUINA_ID).then(adaptDashboard),
-    [MAQUINA_ID],
+    [MAQUINA_ID, simulationEnabled],
     5000
   )
 
-  // Enquanto a API real não está disponível (ou falha), caímos para os
-  // dados mock — assim a tela nunca fica vazia durante o desenvolvimento
-  // visual. Quando a API estiver 100% integrada, essa checagem de `error`
-  // pode ser trocada por <ErrorState onRetry={...} /> puro, sem fallback.
-  const usingFallback = Boolean(error) && !data
-  const d = data ?? {
+  const usingFallback = simulationEnabled && Boolean(error) && !data
+  const d = simulationEnabled ? data ?? {
     oee: 78.4,
     disponibilidade: 92.1,
     performance: 84.7,
     qualidade: 99.6,
     resumo: { boas: 1248, rejeitadas: 62, tempoCicloMedio: 12.8 },
     periodSummary: mockPeriodSummary,
+  } : data
+
+  if (!simulationEnabled && !d) {
+    return <LoadingState label={error ? 'Aguardando dados da SMART 4.0...' : 'Buscando dados da SMART 4.0...'} />
   }
 
   if (loading && !data) return <LoadingState label="Carregando dashboard..." />

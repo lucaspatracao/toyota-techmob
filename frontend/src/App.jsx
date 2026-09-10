@@ -11,6 +11,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('smart40-theme') || 'light')
+  const [simulationEnabled, setSimulationEnabled] = useState(true)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -39,11 +40,17 @@ export default function App() {
           onToggleSidebar={handleToggleSidebar}
         />
         <div className="app-main">
-          <Topbar mqttConnected theme={theme} onToggleTheme={handleToggleTheme} />
+          <Topbar
+            mqttConnected
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
+            simulationEnabled={simulationEnabled}
+            onToggleSimulation={() => setSimulationEnabled((enabled) => !enabled)}
+          />
           <main className="app-content">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard simulationEnabled={simulationEnabled} />} />
               <Route path="/producao" element={<Producao />} />
               <Route path="/historico" element={<Historico />} />
             </Routes>

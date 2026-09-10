@@ -23,11 +23,19 @@
 //   producaoPorPeriodo: [{ periodo, pecasBoas, pecasRejeitadas, taxaRejeicao, tempoCicloMedio, oee }, ...]
 // }
 export function adaptDashboard(dto) {
+  if (!dto) return null
+
+  const indicador = dto.indicadorAtual ?? (Object.prototype.hasOwnProperty.call(dto, 'indicadorAtual') ? null : dto)
+  if (!indicador) return null
+  if ([indicador.oee, indicador.disponibilidade, indicador.performance, indicador.qualidade].every((value) => value == null)) {
+    return null
+  }
+
   return {
-    oee: dto.oee, // confirmar: pode vir como dto.indicadores.oee
-    disponibilidade: dto.disponibilidade,
-    performance: dto.performance,
-    qualidade: dto.qualidade,
+    oee: indicador.oee,
+    disponibilidade: indicador.disponibilidade,
+    performance: indicador.performance,
+    qualidade: indicador.qualidade,
     oeeSeries: (dto.tendenciaOee ?? dto.historicoOee ?? []).map((p) => ({
       time: p.horario ?? p.timestamp ?? p.time,
       oee: p.oee ?? p.valorOee,

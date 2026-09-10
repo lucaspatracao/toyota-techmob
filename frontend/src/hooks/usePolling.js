@@ -23,9 +23,12 @@ export function usePolling(fetchFn, deps = [], intervalMs = 5000) {
     let cancelled = false
     let intervalId
 
+    setData(null)
+    setError(null)
+    setLoading(true)
+
     async function load(isFirst) {
       try {
-        if (isFirst) setLoading(true)
         const result = await fetchFnRef.current()
         if (!cancelled) {
           setData(result)

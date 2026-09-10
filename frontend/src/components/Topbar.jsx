@@ -25,7 +25,13 @@ const IconMoon = () => (
  * Barra superior fixa: identidade do sistema, status de conexão MQTT,
  * notificações e avatar.
  */
-export default function Topbar({ mqttConnected = true, theme = 'light', onToggleTheme }) {
+export default function Topbar({
+  mqttConnected = true,
+  theme = 'light',
+  onToggleTheme,
+  simulationEnabled = true,
+  onToggleSimulation,
+}) {
   const [notifOpen, setNotifOpen] = useState(false)
 
   return (
@@ -50,6 +56,15 @@ export default function Topbar({ mqttConnected = true, theme = 'light', onToggle
       </div>
 
       <div className="topbar-right">
+        <button
+          type="button"
+          className={`simulation-toggle ${simulationEnabled ? 'simulation-on' : 'simulation-off'}`}
+          aria-pressed={simulationEnabled}
+          onClick={onToggleSimulation}
+        >
+          <span className="simulation-toggle-dot" />
+          {simulationEnabled ? 'Desligar simulação' : 'Ativar simulação'}
+        </button>
         <button
           type="button"
           className="theme-toggle"
