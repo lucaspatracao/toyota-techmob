@@ -3,27 +3,26 @@ TechMob 4.0 - Módulo de Ciência de Dados
 Cálculo do OEE (Overall Equipment Effectiveness) a partir dos CSVs
 gerados pelo Node-RED (dados brutos da Bancada Smart 4.0).
 
-Fluxo (conforme Documento do Projeto, seção 5.3):
-  1. Lê o(s) CSV(s) de produção (pandas).
-  2. Calcula estatística descritiva por período (dia/turno).
-  3. Calcula Disponibilidade, Performance, Qualidade e OEE.
-  4. Calcula média móvel do OEE (tendência).
-  5. Grava os indicadores calculados no PostgreSQL (Supabase),
-     tabela `techmob.indicador_oee`.
+Fluxo:
+  1. Lê os CSVs de produção (pandas).
+  2. Calcula as métricas de Disponibilidade, Performance e Qualidade.
+  3. Calcula o OEE por período.
+  4. Grava os resultados na tabela `techmob.indicador_oee`.
+  5. Caso `--watch-dir` seja informado, varre o diretório em loop contínuo
+     com `time.sleep` para processar novos CSVs automaticamente.
 
 Uso:
-    python oee_calculator.py --csv dados_producao.csv --maquina-id 1
-
-Formato esperado do CSV (dados_producao.csv), conforme o documento:
-    timestamp,bancada_id,status_operacional,pecas_boas,pecas_defeituosas,tempo_ciclo_segundos
-    2026-08-17T14:32:10Z,BANCADA_SMART_01,EM_PRODUCAO,128,3,12.5
+    python oee_calculator.py --csv dados_producao.csv --maquina-id 1 --gravar-banco
+    python oee_calculator.py --watch-dir ./dados --maquina-id 1 --gravar-banco --intervalo 30
 """
 
 import argparse
 import logging
 import os
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -46,6 +45,15 @@ COLUNAS_ESPERADAS = [
     "pecas_defeituosas",
     "tempo_ciclo_segundos",
 ]
+
+
+def obter_url_mysql() -> str:
+    host = os.getenv("DB_HOST", "localhost")
+    port = os.getenv("DB_PORT", "3306")
+    dbname = os.getenv("DB_NAME", "techmob")
+    user = os.getenv("DB_USER", "root")
+    password = os.getenv("DB_PASSWORD", "123456")
+    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
 
 
 def ler_csv_producao(caminho_csv: str) -> pd.DataFrame:
@@ -71,7 +79,6 @@ def filtrar_por_maquina(df: pd.DataFrame, bancada_id: str | None) -> pd.DataFram
 
 
 def estatisticas_descritivas(df: pd.DataFrame) -> dict:
-    """Estatísticas descritivas do turno/período: médias, desvio padrão, min/max."""
     return {
         "tempo_ciclo_medio": float(df["tempo_ciclo_segundos"].mean()),
         "tempo_ciclo_desvio_padrao": float(df["tempo_ciclo_segundos"].std(ddof=0)),
@@ -117,14 +124,12 @@ def calcular_oee(df: pd.DataFrame, config: ConfiguracaoOEE) -> dict:
         "oee": round(oee, 2),
         "tempo_operacional_real_segundos": round(tempo_operacional_real, 2),
         "quantidade_total_produzida": quantidade_total_produzida,
+        "pecas_boas": total_pecas_boas,
+        "pecas_defeituosas": total_pecas_defeituosas,
     }
 
 
 def media_movel_oee(df: pd.DataFrame, config: ConfiguracaoOEE, janela: str = "1h") -> pd.DataFrame:
-    """
-    Calcula o OEE por janela de tempo (ex.: por hora) e sua média móvel,
-    para identificar tendências/quedas de eficiência ao longo do turno.
-    """
     df_indexed = df.set_index("timestamp")
     resultados = []
 
@@ -141,34 +146,27 @@ def media_movel_oee(df: pd.DataFrame, config: ConfiguracaoOEE, janela: str = "1h
     return df_oee
 
 
-def gravar_indicador_mysql(maquina_id: int, indicadores: dict, calculado_em: datetime | None = None):
-    """
-    Grava o indicador calculado na tabela `indicador_oee`.
-    Requer as variáveis de ambiente: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD.
-
-    Import de sqlalchemy/pymysql feito localmente para permitir rodar o script
-    apenas em modo de cálculo (sem gravar no banco) quando essas libs/env vars
-    não estiverem disponíveis.
-    """
+def gravar_indicador_mysql(
+    maquina_id: int,
+    indicadores: dict,
+    periodo_inicio: datetime,
+    periodo_fim: datetime,
+    calculado_em: datetime | None = None,
+):
     from sqlalchemy import create_engine, text
 
-    host = os.environ["DB_HOST"]
-    port = os.environ.get("DB_PORT", "3306")
-    dbname = os.environ["DB_NAME"]
-    user = os.environ["DB_USER"]
-    password = os.environ["DB_PASSWORD"]
-
-    url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
+    url = obter_url_mysql()
     engine = create_engine(url)
-
     criado_em = calculado_em or datetime.now(timezone.utc)
 
     query = text(
         """
         INSERT INTO indicador_oee
-            (maquina_id, disponibilidade, performance, qualidade, oee, criado_em)
+            (maquina_id, periodo_inicio, periodo_fim, disponibilidade, performance,
+             qualidade, oee, pecas_boas, pecas_defeituosas, criado_em)
         VALUES
-            (:maquina_id, :disponibilidade, :performance, :qualidade, :oee, :criado_em)
+            (:maquina_id, :periodo_inicio, :periodo_fim, :disponibilidade, :performance,
+             :qualidade, :oee, :pecas_boas, :pecas_defeituosas, :criado_em)
         """
     )
 
@@ -177,26 +175,103 @@ def gravar_indicador_mysql(maquina_id: int, indicadores: dict, calculado_em: dat
             query,
             {
                 "maquina_id": maquina_id,
+                "periodo_inicio": periodo_inicio,
+                "periodo_fim": periodo_fim,
                 "disponibilidade": indicadores["disponibilidade"],
                 "performance": indicadores["performance"],
                 "qualidade": indicadores["qualidade"],
                 "oee": indicadores["oee"],
+                "pecas_boas": indicadores["pecas_boas"],
+                "pecas_defeituosas": indicadores["pecas_defeituosas"],
                 "criado_em": criado_em,
             },
         )
+
     logger.info("Indicador OEE gravado no MySQL para maquina_id=%s", maquina_id)
+
+
+def processar_csv(caminho_csv: str, maquina_id: int = 1, bancada_id: str | None = None, gravar_banco: bool = True):
+    df = ler_csv_producao(caminho_csv)
+    df = filtrar_por_maquina(df, bancada_id)
+
+    if df.empty:
+        logger.warning("Nenhum dado encontrado após os filtros aplicados no arquivo %s", caminho_csv)
+        return None
+
+    stats = estatisticas_descritivas(df)
+    logger.info("Estatísticas do arquivo %s: %s", caminho_csv, stats)
+
+    indicadores = calcular_oee(df, ConfiguracaoOEE())
+    logger.info("Indicadores OEE do arquivo %s: %s", caminho_csv, indicadores)
+
+    if gravar_banco:
+        gravar_indicador_mysql(
+            maquina_id=maquina_id,
+            indicadores=indicadores,
+            periodo_inicio=df["timestamp"].min().to_pydatetime(),
+            periodo_fim=df["timestamp"].max().to_pydatetime(),
+        )
+
+    return indicadores
+
+
+def varrer_diretorio(
+    diretorio: str,
+    maquina_id: int = 1,
+    bancada_id: str | None = "BANCADA_SMART_01",
+    gravar_banco: bool = True,
+    intervalo_segundos: int = 30,
+):
+    diretorio_path = Path(diretorio)
+    processados = {}
+
+    logger.info("Iniciando varredura contínua em %s a cada %s segundos", diretorio_path, intervalo_segundos)
+
+    while True:
+        for arquivo_csv in sorted(diretorio_path.glob("*.csv")):
+            chave = arquivo_csv.resolve()
+            ultima_modificacao = arquivo_csv.stat().st_mtime
+            if processados.get(chave) == ultima_modificacao:
+                continue
+
+            logger.info("Processando arquivo: %s", arquivo_csv)
+            try:
+                processar_csv(
+                    caminho_csv=str(arquivo_csv),
+                    maquina_id=maquina_id,
+                    bancada_id=bancada_id,
+                    gravar_banco=gravar_banco,
+                )
+                processados[chave] = ultima_modificacao
+            except Exception:
+                logger.exception("Erro ao processar o arquivo %s", arquivo_csv)
+
+        time.sleep(intervalo_segundos)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Cálculo do OEE - TechMob 4.0")
-    parser.add_argument("--csv", required=True, help="Caminho do CSV de produção")
-    parser.add_argument("--bancada-id", default=None, help="Filtrar por bancada_id (ex.: BANCADA_SMART_01)")
-    parser.add_argument("--maquina-id", type=int, default=None, help="ID da máquina no banco (para gravação)")
+    parser.add_argument("--csv", help="Caminho do CSV de produção para processamento único")
+    parser.add_argument("--watch-dir", help="Diretório que será varrido em loop contínuo para CSVs")
+    parser.add_argument("--intervalo", type=int, default=30, help="Intervalo em segundos para varrer o diretório em loop")
+    parser.add_argument("--bancada-id", default="BANCADA_SMART_01", help="Filtrar por bancada_id (ex.: BANCADA_SMART_01)")
+    parser.add_argument("--maquina-id", type=int, default=1, help="ID da máquina no banco (valor padrão: 1)")
     parser.add_argument("--gravar-banco", action="store_true", help="Gravar o resultado no MySQL")
     parser.add_argument("--tendencia", action="store_true", help="Calcular também a série de OEE por hora + média móvel")
     args = parser.parse_args()
 
-    config = ConfiguracaoOEE()
+    if args.watch_dir:
+        varrer_diretorio(
+            diretorio=args.watch_dir,
+            maquina_id=args.maquina_id,
+            bancada_id=args.bancada_id,
+            gravar_banco=args.gravar_banco,
+            intervalo_segundos=args.intervalo,
+        )
+        return
+
+    if not args.csv:
+        raise ValueError("Informe --csv ou --watch-dir")
 
     df = ler_csv_producao(args.csv)
     df = filtrar_por_maquina(df, args.bancada_id)
@@ -208,17 +283,20 @@ def main():
     stats = estatisticas_descritivas(df)
     logger.info("Estatísticas descritivas: %s", stats)
 
-    indicadores = calcular_oee(df, config)
+    indicadores = calcular_oee(df, ConfiguracaoOEE())
     logger.info("Indicadores OEE: %s", indicadores)
 
     if args.tendencia:
-        df_tendencia = media_movel_oee(df, config)
+        df_tendencia = media_movel_oee(df, ConfiguracaoOEE())
         logger.info("Série de OEE por hora + média móvel:\n%s", df_tendencia)
 
     if args.gravar_banco:
-        if args.maquina_id is None:
-            raise ValueError("--maquina-id é obrigatório ao usar --gravar-banco")
-        gravar_indicador_mysql(args.maquina_id, indicadores)
+        gravar_indicador_mysql(
+            args.maquina_id,
+            indicadores,
+            periodo_inicio=df["timestamp"].min().to_pydatetime(),
+            periodo_fim=df["timestamp"].max().to_pydatetime(),
+        )
 
 
 if __name__ == "__main__":
