@@ -1,17 +1,41 @@
 import { useState, useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import AuthProvider, { USER_TYPES } from './context/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import Sidebar from './components/Sidebar.jsx'
 import Topbar from './components/Topbar.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Producao from './pages/Producao.jsx'
 import Historico from './pages/Historico.jsx'
+import Login from './pages/Login.jsx'
 import './styles/layout.css'
 
-export default function App() {
+/**
+ * Componente privado que verifica autenticação
+ * Se não autenticado, redireciona para login
+ */
+function PrivateRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth()
+
+  if (loading) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Carregando...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
+/**
+ * Layout principal (com sidebar, topbar, etc)
+ * Só exibido quando autenticado
+ */
+function AppLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('smart40-theme') || 'light')
-  // Controla globalmente se a dashboard usa o modo de demonstração ou a SMART 4.0 real.
   const [simulationEnabled, setSimulationEnabled] = useState(true)
 
   useEffect(() => {
@@ -22,8 +46,6 @@ export default function App() {
   const handleToggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   const handleToggleSidebar = () => {
-    // Em telas pequenas o hambúrguer abre/fecha o menu off-canvas;
-    // em telas grandes ele recolhe a sidebar para 64px (só ícones).
     if (window.innerWidth <= 1024) {
       setMobileOpen((v) => !v)
     } else {
@@ -32,32 +54,82 @@ export default function App() {
   }
 
   return (
-    <HashRouter>
-      <div className="app-shell">
-        <Sidebar
-          collapsed={collapsed}
-          mobileOpen={mobileOpen}
-          onCloseMobile={() => setMobileOpen(false)}
-          onToggleSidebar={handleToggleSidebar}
+    <div className="app-shell">
+      <Sidebar
+        collapsed={collapsed}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+        onToggleSidebar={handleToggleSidebar}
+      />
+      <div className="app-main">
+        <Topbar
+          mqttConnected
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          simulationEnabled={simulationEnabled}
+          onToggleSimulation={() => setSimulationEnabled((enabled) => !enabled)}
         />
-        <div className="app-main">
-          <Topbar
-            mqttConnected
-            theme={theme}
-            onToggleTheme={handleToggleTheme}
-            simulationEnabled={simulationEnabled}
-            onToggleSimulation={() => setSimulationEnabled((enabled) => !enabled)}
-          />
-          <main className="app-content">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard simulationEnabled={simulationEnabled} />} />
-              <Route path="/producao" element={<Producao />} />
-              <Route path="/historico" element={<Historico />} />
-            </Routes>
-          </main>
-        </div>
+        <main className="app-content">
+          {children}
+        </main>
       </div>
-    </HashRouter>
+    </div>
+  )
+}
+
+/**
+ * Rotas da aplicação
+ */
+function AppRoutes() {
+  const { isAuthenticated } = useAuth()
+
+  return (
+    <Routes>
+      {/* Rota pública: Login */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Rotas privadas */}
+      <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+      <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute>
+            <AppLayout>
+              <Dashboard />
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/producao"
+        element={
+          <PrivateRoute>
+            <AppLayout>
+              <Producao />
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/historico"
+        element={
+          <PrivateRoute>
+            <AppLayout>
+              <Historico />
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <HashRouter>
+        <AppRoutes />
+      </HashRouter>
+    </AuthProvider>
   )
 }
