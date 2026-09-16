@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.toyota.techmob</groupId>
-	<artifactId>back-end</artifactId>
+	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>back-end</name>
+	<name>backend</name>
 	<description>TechMob 4.0 - API de monitoramento de OEE</description>
 
 	<properties>
