@@ -116,6 +116,11 @@ class SimuladorBancadaSmart:
         um fluxo de dados com intervalo fixo para integração com consumidores que
         esperam eventos periódicos.
         """
+        if duracao_horas <= 0:
+            raise ValueError("duracao_horas deve ser maior que zero")
+        if passo_segundos <= 0:
+            raise ValueError("passo_segundos deve ser maior que zero")
+
         dados = []
         tempo_inicio = datetime.now(timezone.utc) - timedelta(hours=duracao_horas)
         tempo_atual = tempo_inicio
