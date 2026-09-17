@@ -11,9 +11,8 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
-import numpy as np
 import pandas as pd
 
 # Configuração de logging
@@ -94,7 +93,7 @@ class SimuladorBancadaSmart:
             taxa_defeito = self.config.taxa_defeito_base + random.gauss(0, 0.005)
             taxa_defeito = max(0, min(0.1, taxa_defeito))
             
-            pecas_defeituosas = int(pecas_ciclo * taxa_defeito)
+            pecas_defeituosas = int(random.random() < taxa_defeito)
             pecas_boas = pecas_ciclo - pecas_defeituosas
         else:
             pecas_boas = 0
@@ -109,7 +108,12 @@ class SimuladorBancadaSmart:
             'tempo_ciclo_segundos': round(tempo_ciclo, 2)
         }
     
-    def gerar_lote(self, duracao_horas: float = 8, passo_segundos: float = 5) -> pd.DataFrame:
+    def gerar_lote(
+        self,
+        duracao_horas: float = 8,
+        passo_segundos: float = 5,
+        arquivo_saida: Optional[str] = None,
+    ) -> pd.DataFrame:
         """Gera um lote completo de dados.
 
         Por padrão gera um registro a cada `passo_segundos` (ex.: 5s), independentemente
@@ -117,6 +121,11 @@ class SimuladorBancadaSmart:
         um fluxo de dados com intervalo fixo para integração com consumidores que
         esperam eventos periódicos.
         """
+        if duracao_horas <= 0:
+            raise ValueError("duracao_horas deve ser maior que zero")
+        if passo_segundos <= 0:
+            raise ValueError("passo_segundos deve ser maior que zero")
+
         dados = []
         tempo_inicio = datetime.now(timezone.utc) - timedelta(hours=duracao_horas)
         tempo_atual = tempo_inicio
@@ -136,7 +145,7 @@ class SimuladorBancadaSmart:
         logger.info(f"Simulação concluída! {len(df)} registros gerados.")
 
         # Salva automaticamente
-        nome_arquivo = f"dados_simulados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        nome_arquivo = arquivo_saida or f"dados_simulados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         df.to_csv(nome_arquivo, index=False)
         logger.info(f"Dados salvos em: {nome_arquivo}")
 
@@ -238,19 +247,25 @@ RELATÓRIO OEE - TECHMOB 4.0
 def main():
     """Função principal"""
     parser = argparse.ArgumentParser(description='Cálculo do OEE - TechMob 4.0')
-    parser.add_argument('--csv', help='Caminho do CSV de produção')
-    parser.add_argument('--simular', action='store_true', help='Executar simulação')
+    entrada = parser.add_mutually_exclusive_group(required=True)
+    entrada.add_argument('--csv', help='Caminho do CSV de produção')
+    entrada.add_argument('--simular', action='store_true', help='Executar simulação')
     parser.add_argument('--horas', type=float, default=8, help='Duração da simulação em horas')
+        parser.add_argument('--seed', type=int, help='Semente opcional para reproduzir a simulação')
+    parser.add_argument('--saida', help='Arquivo CSV para salvar os dados simulados')
     parser.add_argument('--relatorio', action='store_true', help='Gerar relatório detalhado')
     
     args = parser.parse_args()
+
+    if args.seed is not None:
+        random.seed(args.seed)
     
     config = ConfiguracaoOEE()
     
     # Carrega ou gera dados
     if args.simular:
         simulador = SimuladorBancadaSmart(config)
-        df = simulador.gerar_lote(args.horas)
+        df = simulador.gerar_lote(args.horas, arquivo_saida=args.saida)
     elif args.csv:
         if not os.path.exists(args.csv):
             logger.error(f"Arquivo não encontrado: {args.csv}")
@@ -258,10 +273,7 @@ def main():
         df = pd.read_csv(args.csv)
         df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
         logger.info(f"Carregados {len(df)} registros do arquivo")
-    else:
-        logger.error("Use --simular ou --csv para fornecer dados")
-        sys.exit(1)
-    
+
     # Calcula indicadores
     indicadores = calcular_oee(df, config)
     
