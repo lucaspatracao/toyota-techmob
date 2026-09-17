@@ -52,7 +52,7 @@ def obter_url_mysql() -> str:
     port = os.getenv("DB_PORT", "3306")
     dbname = os.getenv("DB_NAME", "techmob")
     user = os.getenv("DB_USER", "root")
-    password = os.getenv("DB_PASSWORD", "123456")
+    password = os.environ["DB_PASSWORD"]
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
 
 
