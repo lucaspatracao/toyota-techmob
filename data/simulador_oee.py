@@ -109,28 +109,37 @@ class SimuladorBancadaSmart:
             'tempo_ciclo_segundos': round(tempo_ciclo, 2)
         }
     
-    def gerar_lote(self, duracao_horas: float = 8) -> pd.DataFrame:
-        """Gera um lote completo de dados"""
+    def gerar_lote(self, duracao_horas: float = 8, passo_segundos: float = 5) -> pd.DataFrame:
+        """Gera um lote completo de dados.
+
+        Por padrão gera um registro a cada `passo_segundos` (ex.: 5s), independentemente
+        do valor de `tempo_ciclo_segundos` calculado internamente. Isso permite gerar
+        um fluxo de dados com intervalo fixo para integração com consumidores que
+        esperam eventos periódicos.
+        """
         dados = []
         tempo_inicio = datetime.now(timezone.utc) - timedelta(hours=duracao_horas)
         tempo_atual = tempo_inicio
         tempo_fim = tempo_inicio + timedelta(hours=duracao_horas)
-        
-        logger.info(f"Iniciando simulação de {duracao_horas} horas...")
-        
+
+        logger.info(f"Iniciando simulação de {duracao_horas} horas (passo={passo_segundos}s)...")
+
+        # Gera um registro por passo temporal fixo (ex.: 5 segundos)
         while tempo_atual < tempo_fim:
             ciclo = self.gerar_ciclo(tempo_atual)
+            # Forçar timestamp que corresponde ao passo atual (evita dependência do tempo de ciclo)
+            ciclo['timestamp'] = tempo_atual
             dados.append(ciclo)
-            tempo_atual += timedelta(seconds=ciclo['tempo_ciclo_segundos'])
-        
+            tempo_atual += timedelta(seconds=passo_segundos)
+
         df = pd.DataFrame(dados)
-        logger.info(f"Simulação concluída! {len(df)} ciclos gerados.")
-        
+        logger.info(f"Simulação concluída! {len(df)} registros gerados.")
+
         # Salva automaticamente
         nome_arquivo = f"dados_simulados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         df.to_csv(nome_arquivo, index=False)
         logger.info(f"Dados salvos em: {nome_arquivo}")
-        
+
         return df
 
 

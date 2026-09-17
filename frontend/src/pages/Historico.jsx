@@ -8,7 +8,7 @@ import '../styles/historico.css'
 
 const DOT_CLASS = { green: 'dot-green', orange: 'dot-orange', red: 'dot-red' }
 
-export default function Historico() {
+export default function Historico({ simulationEnabled = true, simulationState }) {
   const [page, setPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateFrom, setDateFrom] = useState('2024-05-11')
@@ -16,14 +16,12 @@ export default function Historico() {
   const [groupBy, setGroupBy] = useState('Hora')
   const [shiftFilter, setShiftFilter] = useState('Todos os turnos')
 
-  // Suposição: no protótipo visual, repetimos as linhas de exemplo para
-  // simular uma base maior e demonstrar a paginação (225 itens, como na
-  // referência).
+  const simulationRows = simulationEnabled && simulationState?.historicoRows ? simulationState.historicoRows : historicoRows
   const allRows = useMemo(() => {
     const rows = []
-    for (let i = 0; i < 23; i++) rows.push(...historicoRows)
+    for (let i = 0; i < 23; i++) rows.push(...simulationRows)
     return rows.slice(0, 225)
-  }, [])
+  }, [simulationRows])
 
   const totalPages = Math.ceil(allRows.length / itemsPerPage)
   const startItem = (page - 1) * itemsPerPage + 1
@@ -35,10 +33,10 @@ export default function Historico() {
       <PageHeader title="Histórico" subtitle="Consulte o histórico completo de produção da máquina." />
 
       <div className="kpi-row">
-        <StatCard icon="total" label="PRODUÇÃO TOTAL" value="45.678" unit="peças" caption="No período selecionado" />
-        <StatCard icon="good" label="PEÇAS BOAS" value="43.286" unit="peças" caption="No período selecionado" />
-        <StatCard icon="rejected" label="PEÇAS REJEITADAS" value="2.392" unit="peças" caption="No período selecionado" />
-        <StatCard icon="rate" label="TAXA DE REJEIÇÃO MÉDIA" value="5,2%" caption="No período selecionado" />
+        <StatCard icon="total" label="PRODUÇÃO TOTAL" value={allRows.reduce((sum, row) => sum + row.boas, 0).toLocaleString('pt-BR')} unit="peças" caption="No período selecionado" />
+        <StatCard icon="good" label="PEÇAS BOAS" value={allRows.reduce((sum, row) => sum + row.boas, 0).toLocaleString('pt-BR')} unit="peças" caption="No período selecionado" />
+        <StatCard icon="rejected" label="PEÇAS REJEITADAS" value={allRows.reduce((sum, row) => sum + row.rejeitadas, 0).toLocaleString('pt-BR')} unit="peças" caption="No período selecionado" />
+        <StatCard icon="rate" label="TAXA DE REJEIÇÃO MÉDIA" value={`${(allRows.reduce((sum, row) => sum + Number(String(row.taxa).replace('%', '').replace(',', '.')), 0) / Math.max(allRows.length, 1)).toFixed(1).replace('.', ',')}%`} caption="No período selecionado" />
       </div>
 
       <Panel className="filters-panel" style={{ marginTop: 20 }}>
@@ -159,7 +157,7 @@ export default function Historico() {
         />
       </Panel>
 
-      <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>
+      <p className="updated-note">Dados atualizados em tempo real pela simulação · {simulationState?.updatedAt || 'agora'}</p>
     </>
   )
 }

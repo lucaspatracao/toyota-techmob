@@ -5,19 +5,33 @@ import Topbar from './components/Topbar.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Producao from './pages/Producao.jsx'
 import Historico from './pages/Historico.jsx'
+import { createInitialSimulationState } from './data/simulation.js'
 import './styles/layout.css'
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('smart40-theme') || 'light')
-  // Controla globalmente se a dashboard usa o modo de demonstração ou a SMART 4.0 real.
   const [simulationEnabled, setSimulationEnabled] = useState(true)
+  const [simulationState, setSimulationState] = useState(() => createInitialSimulationState())
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('smart40-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    if (!simulationEnabled) return
+
+    const interval = setInterval(() => {
+      setSimulationState((current) => {
+        const nextStep = (current?.step ?? 0) + 1
+        return { ...createInitialSimulationState(nextStep), step: nextStep }
+      })
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [simulationEnabled])
 
   const handleToggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
@@ -51,9 +65,9 @@ export default function App() {
           <main className="app-content">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard simulationEnabled={simulationEnabled} />} />
-              <Route path="/producao" element={<Producao />} />
-              <Route path="/historico" element={<Historico />} />
+              <Route path="/dashboard" element={<Dashboard simulationEnabled={simulationEnabled} simulationState={simulationState} />} />
+              <Route path="/producao" element={<Producao simulationEnabled={simulationEnabled} simulationState={simulationState} />} />
+              <Route path="/historico" element={<Historico simulationEnabled={simulationEnabled} simulationState={simulationState} />} />
             </Routes>
           </main>
         </div>
