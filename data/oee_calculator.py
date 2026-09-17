@@ -23,6 +23,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 
@@ -51,7 +52,7 @@ def obter_url_mysql() -> str:
     port = os.getenv("DB_PORT", "3306")
     dbname = os.getenv("DB_NAME", "techmob")
     user = os.getenv("DB_USER", "root")
-    password = os.environ["DB_PASSWORD"]
+    password = quote(os.environ["DB_PASSWORD"], safe="")
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
 
 
