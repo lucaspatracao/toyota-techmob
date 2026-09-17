@@ -56,7 +56,7 @@ class SimuladorBancadaSmart:
         self._contador_pecas = 0
         self._tempo_restante_falha = 0
     
-    def gerar_ciclo(self, timestamp: Optional[datetime] = None) -> Dict:
+    def gerar_ciclo(self, timestamp: Optional[datetime] = None) -> Dict:    
         """Gera um ciclo de produção"""
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)

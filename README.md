@@ -18,7 +18,7 @@ Construir uma aplicação completa de coleta, processamento, armazenamento e vis
 | Armazenamento bruto | Arquivos CSV | Histórico ciclo a ciclo dos dados de produção |
 | Processamento / Ciência de Dados | Python (pandas, NumPy) | Leitura dos CSVs, cálculo do OEE e estatísticas descritivas |
 | Persistência estrutural | MySQL local (Workbench / localhost) | Máquinas, indicadores calculados, histórico consolidado |
-| Back-end / API | Java 17, Spring Boot, Spring Data JPA | Endpoints REST que servem os dados do banco ao front-end |
+| Back-end / API | Java 25, Spring Boot, Spring Data JPA | Endpoints REST que servem os dados do banco ao front-end |
 | Front-end | React, Axios, Chart.js/Recharts | Dashboard interativo com cards, gráficos e histórico |
 | Deploy / execução local | Java + Maven + MySQL local | Execução do back-end e banco no ambiente local |
 
@@ -40,7 +40,7 @@ toyota-techmob/
 │   └── src/main/resources/
 │       └── application.properties
 │
-├── data-science/       # Python para cálculo de OEE a partir dos CSVs
+├── data/               # Python para cálculo de OEE a partir dos CSVs
 │   ├── oee_calculator.py
 │   └── requirements.txt
 │
@@ -54,7 +54,7 @@ toyota-techmob/
 ├── infra/
 │   └── schema.sql          # schema do MySQL local
 │
-├── node-red/
+├── node/
 │   ├── flow-captura-bancada.json
 │   └── README.md
 │
@@ -64,7 +64,7 @@ toyota-techmob/
 ## Como rodar localmente
 
 ### Pré-requisitos
-- Java 17+ e Maven
+- JDK 25 e Maven
 - Node.js e npm
 - MySQL Workbench / MySQL Server local
 
@@ -93,7 +93,13 @@ cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-O back-end sobe na porta padrão do Spring Boot (`8080`) e se conecta ao MySQL local usando as configurações em `backend/src/main/resources/application.properties`.
+O back-end sobe na porta padrão do Spring Boot (`8080`) e se conecta ao MySQL local usando as variáveis `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD`.
+
+No Windows PowerShell, configure ao menos a senha antes de iniciar:
+
+```powershell
+$env:DB_PASSWORD = "sua-senha"
+```
 
 ### Front-end
 
@@ -108,7 +114,7 @@ O front-end atualmente utiliza React + Vite e dados mockados como fallback duran
 ### Python / cálculo do OEE
 
 ```bash
-cd data-science
+cd data
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt

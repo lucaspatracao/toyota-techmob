@@ -23,8 +23,8 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
-import numpy as np
 import pandas as pd
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -52,7 +52,7 @@ def obter_url_mysql() -> str:
     port = os.getenv("DB_PORT", "3306")
     dbname = os.getenv("DB_NAME", "techmob")
     user = os.getenv("DB_USER", "root")
-    password = os.environ["DB_PASSWORD"]
+    password = quote(os.environ["DB_PASSWORD"], safe="")
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
 
 
@@ -222,6 +222,9 @@ def varrer_diretorio(
     gravar_banco: bool = True,
     intervalo_segundos: int = 30,
 ):
+    if intervalo_segundos <= 0:
+        raise ValueError("intervalo_segundos deve ser maior que zero")
+
     diretorio_path = Path(diretorio)
     processados = {}
 
@@ -261,13 +264,16 @@ def main():
     args = parser.parse_args()
 
     if args.watch_dir:
-        varrer_diretorio(
-            diretorio=args.watch_dir,
-            maquina_id=args.maquina_id,
-            bancada_id=args.bancada_id,
-            gravar_banco=args.gravar_banco,
-            intervalo_segundos=args.intervalo,
-        )
+        try:
+            varrer_diretorio(
+                diretorio=args.watch_dir,
+                maquina_id=args.maquina_id,
+                bancada_id=args.bancada_id,
+                gravar_banco=args.gravar_banco,
+                intervalo_segundos=args.intervalo,
+            )
+        except KeyboardInterrupt:
+            logger.info("Varredura interrompida pelo usuário")
         return
 
     if not args.csv:
