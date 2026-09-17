@@ -108,7 +108,12 @@ class SimuladorBancadaSmart:
             'tempo_ciclo_segundos': round(tempo_ciclo, 2)
         }
     
-    def gerar_lote(self, duracao_horas: float = 8, passo_segundos: float = 5) -> pd.DataFrame:
+    def gerar_lote(
+        self,
+        duracao_horas: float = 8,
+        passo_segundos: float = 5,
+        arquivo_saida: Optional[str] = None,
+    ) -> pd.DataFrame:
         """Gera um lote completo de dados.
 
         Por padrão gera um registro a cada `passo_segundos` (ex.: 5s), independentemente
@@ -140,7 +145,7 @@ class SimuladorBancadaSmart:
         logger.info(f"Simulação concluída! {len(df)} registros gerados.")
 
         # Salva automaticamente
-        nome_arquivo = f"dados_simulados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        nome_arquivo = arquivo_saida or f"dados_simulados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         df.to_csv(nome_arquivo, index=False)
         logger.info(f"Dados salvos em: {nome_arquivo}")
 
@@ -247,6 +252,7 @@ def main():
     entrada.add_argument('--simular', action='store_true', help='Executar simulação')
     parser.add_argument('--horas', type=float, default=8, help='Duração da simulação em horas')
         parser.add_argument('--seed', type=int, help='Semente opcional para reproduzir a simulação')
+    parser.add_argument('--saida', help='Arquivo CSV para salvar os dados simulados')
     parser.add_argument('--relatorio', action='store_true', help='Gerar relatório detalhado')
     
     args = parser.parse_args()
@@ -259,7 +265,7 @@ def main():
     # Carrega ou gera dados
     if args.simular:
         simulador = SimuladorBancadaSmart(config)
-        df = simulador.gerar_lote(args.horas)
+        df = simulador.gerar_lote(args.horas, arquivo_saida=args.saida)
     elif args.csv:
         if not os.path.exists(args.csv):
             logger.error(f"Arquivo não encontrado: {args.csv}")
