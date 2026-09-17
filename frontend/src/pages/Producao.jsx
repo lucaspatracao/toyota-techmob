@@ -11,8 +11,28 @@ import '../styles/producao.css'
 
 const RANGES = ['1H', '6H', '12H', '24H', '7D', '30D']
 
-export default function Producao() {
+export default function Producao({ simulationEnabled = true, simulationState }) {
   const [range, setRange] = useState('24H')
+  const data = simulationEnabled ? simulationState : null
+
+  const summary = data ? {
+    total: data.resumo?.boas ?? 1248,
+    boas: data.resumo?.boas ?? 1186,
+    rejeitadas: data.resumo?.rejeitadas ?? 62,
+    taxa: ((data.resumo?.rejeitadas ?? 62) / Math.max((data.resumo?.boas ?? 1248) + (data.resumo?.rejeitadas ?? 62), 1) * 100),
+    ciclo: data.resumo?.tempoCicloMedio ?? 12.8,
+    updatedAt: data.updatedAt ?? 'agora',
+  } : {
+    total: 1248,
+    boas: 1186,
+    rejeitadas: 62,
+    taxa: 5,
+    ciclo: 12.8,
+    updatedAt: 'agora',
+  }
+
+  const chartData = data?.productionSeries ?? productionSeries
+  const hourlyData = data?.hourlyBars ?? hourlyBars
 
   return (
     <>
@@ -25,16 +45,16 @@ export default function Producao() {
               <path d="M21 12a9 9 0 1 1-3-6.7" />
               <path d="M21 3v6h-6" />
             </svg>
-            Atualizado em 14:32:18
+            Atualizado em {summary.updatedAt}
           </button>
         }
       />
 
       <div className="kpi-row">
-        <StatCard icon="total" label="PRODUÇÃO TOTAL" value="1.248" unit="peças" caption="Últimas 24 horas" trend={{ direction: 'up', value: '6,2%', label: 'vs ontem' }} />
-        <StatCard icon="good" label="PEÇAS BOAS" value="1.186" unit="peças" caption="Últimas 24 horas" trend={{ direction: 'up', value: '6,4%', label: 'vs ontem' }} />
-        <StatCard icon="rejected" label="PEÇAS REJEITADAS" value="62" unit="peças" caption="Últimas 24 horas" trend={{ direction: 'down', value: '3,1%', label: 'vs ontem' }} />
-        <StatCard icon="rate" label="TAXA DE REJEIÇÃO" value="5,0%" caption="Últimas 24 horas" trend={{ direction: 'down', value: '0,2 p.p.', label: 'vs ontem' }} />
+        <StatCard icon="total" label="PRODUÇÃO TOTAL" value={summary.total.toLocaleString('pt-BR')} unit="peças" caption="Últimas 24 horas" trend={{ direction: 'up', value: '6,2%', label: 'vs ontem' }} />
+        <StatCard icon="good" label="PEÇAS BOAS" value={summary.boas.toLocaleString('pt-BR')} unit="peças" caption="Últimas 24 horas" trend={{ direction: 'up', value: '6,4%', label: 'vs ontem' }} />
+        <StatCard icon="rejected" label="PEÇAS REJEITADAS" value={String(summary.rejeitadas)} unit="peças" caption="Últimas 24 horas" trend={{ direction: 'down', value: '3,1%', label: 'vs ontem' }} />
+        <StatCard icon="rate" label="TAXA DE REJEIÇÃO" value={`${summary.taxa.toFixed(1).replace('.', ',')}%`} caption="Últimas 24 horas" trend={{ direction: 'down', value: '0,2 p.p.', label: 'vs ontem' }} />
       </div>
 
       <div className="grid-row" style={{ marginTop: 20, alignItems: 'stretch' }}>
@@ -57,7 +77,7 @@ export default function Producao() {
             <span><i className="dash-legend" /> Taxa de rejeição (%)</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={productionSeries} margin={{ top: 10, right: 30, left: -10, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: -10, bottom: 0 }}>
               <CartesianGrid stroke="#E2E8F0" vertical={false} />
               <XAxis dataKey="time" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis yAxisId="left" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} label={{ value: 'Peças', position: 'insideTopLeft', fill: '#64748B', fontSize: 11 }} />
@@ -72,16 +92,16 @@ export default function Producao() {
 
         <Panel title="RESUMO (ÚLTIMAS 24 HORAS)" className="summary-panel">
           <div className="summary-donut-wrap">
-            <SummaryDonut good={1186} rejected={62} />
+            <SummaryDonut good={summary.boas} rejected={summary.rejeitadas} />
             <ul className="summary-legend">
-              <li><span className="dot dot-green" /> Peças boas <b>1.186 (94,8%)</b></li>
-              <li><span className="dot dot-red" /> Peças rejeitadas <b>62 (5,0%)</b></li>
-              <li><span className="dot dot-orange" /> Taxa de rejeição <b>5,0%</b></li>
+              <li><span className="dot dot-green" /> Peças boas <b>{summary.boas.toLocaleString('pt-BR')} ({((summary.boas / (summary.boas + summary.rejeitadas)) * 100).toFixed(1).replace('.', ',')}%)</b></li>
+              <li><span className="dot dot-red" /> Peças rejeitadas <b>{summary.rejeitadas.toLocaleString('pt-BR')} ({summary.taxa.toFixed(1).replace('.', ',')}%)</b></li>
+              <li><span className="dot dot-orange" /> Taxa de rejeição <b>{summary.taxa.toFixed(1).replace('.', ',')}%</b></li>
             </ul>
           </div>
           <div className="summary-footer-row">
             <span>Tempo de ciclo médio</span>
-            <b>8,42 s</b>
+            <b>{summary.ciclo.toFixed(1).replace('.', ',')} s</b>
           </div>
         </Panel>
       </div>
@@ -92,7 +112,7 @@ export default function Producao() {
           <span><i className="dot dot-red" /> Peças rejeitadas</span>
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={hourlyBars} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          <BarChart data={hourlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid stroke="#E2E8F0" vertical={false} />
             <XAxis dataKey="hour" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} interval={0} />
             <YAxis stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
@@ -103,7 +123,7 @@ export default function Producao() {
         </ResponsiveContainer>
       </Panel>
 
-      <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>
+      <p className="updated-note">Dados atualizados em tempo real pela simulação · {summary.updatedAt}</p>
     </>
   )
 }

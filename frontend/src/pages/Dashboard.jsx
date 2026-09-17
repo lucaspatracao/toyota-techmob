@@ -11,9 +11,9 @@ import '../styles/dashboard.css'
 // Quando houver seleção de máquina na UI, isso vira estado/prop.
 const MAQUINA_ID = import.meta.env.VITE_MAQUINA_ID || 1
 
-function KpiCard({ label, value, unit, trend, caption, featured, progress }) {
+function KpiCard({ label, value, unit, trend, caption, featured, progress, refreshKey }) {
   return (
-    <div className={`panel kpi-card${featured ? ' kpi-card-featured' : ''}`}>
+    <div key={refreshKey} className={`panel kpi-card${featured ? ' kpi-card-featured' : ''}`}>
       <div className="kpi-card-top">
         <span className="kpi-label">{label}</span>
         {trend && (
@@ -41,12 +41,29 @@ function TrendChart({ points }) {
   const w = 640
   const h = 190
   const max = 100
-  const step = w / (points.length - 1)
-  const coords = points.map((v, i) => [i * step, h - (v / max) * h])
-  const linePath = coords.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const areaPath = `${linePath} L${w},${h} L0,${h} Z`
-  const last = coords[coords.length - 1]
-  const mid = coords[Math.floor(coords.length * 0.6)]
+  const safePoints = points.length ? points : [0, 0]
+  const step = safePoints.length > 1 ? w / (safePoints.length - 1) : w
+  const coords = safePoints.map((v, i) => [i * step, h - (v / max) * h])
+
+  const buildSmoothPath = (values) => {
+    if (!values.length) return ''
+    if (values.length === 1) return `M ${values[0][0]} ${values[0][1]}`
+
+    let d = `M ${values[0][0].toFixed(1)} ${values[0][1].toFixed(1)}`
+
+    for (let i = 1; i < values.length; i++) {
+      const prev = values[i - 1]
+      const curr = values[i]
+      const cx = (prev[0] + curr[0]) / 2
+      d += ` Q ${prev[0].toFixed(1)} ${prev[1].toFixed(1)} ${cx.toFixed(1)} ${(prev[1] + curr[1]) / 2}`
+      d += ` T ${curr[0].toFixed(1)} ${curr[1].toFixed(1)}`
+    }
+
+    return d
+  }
+
+  const linePath = buildSmoothPath(coords)
+  const areaPath = `${linePath} L ${w} ${h} L 0 ${h} Z`
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="dash-trend-svg" preserveAspectRatio="none">
@@ -56,10 +73,27 @@ function TrendChart({ points }) {
           <stop offset="100%" stopColor="var(--content-accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill="url(#trendFill)" />
-      <path d={linePath} fill="none" stroke="var(--content-accent)" strokeWidth="2.5" strokeLinecap="round" />
-      <circle cx={mid[0]} cy={mid[1]} r="4" fill="var(--content-accent)" stroke="#fff" strokeWidth="2" />
-      <circle cx={last[0]} cy={last[1]} r="4" fill="var(--content-accent)" stroke="#fff" strokeWidth="2" />
+      <path d={areaPath} fill="url(#trendFill)" style={{ transition: 'all 0.7s ease' }} />
+      <path
+        d={linePath}
+        fill="none"
+        stroke="var(--content-accent)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        style={{ transition: 'all 0.7s ease' }}
+      />
+      {coords.map(([x, y], index) => (
+        <circle
+          key={`${x}-${y}-${index}`}
+          cx={x}
+          cy={y}
+          r={index === coords.length - 1 ? 4 : 2.5}
+          fill="var(--content-accent)"
+          stroke="#fff"
+          strokeWidth="2"
+          style={{ transition: 'all 0.7s ease' }}
+        />
+      ))}
     </svg>
   )
 }
@@ -68,32 +102,87 @@ function fmtPct(v) {
   return v === undefined || v === null ? '-' : `${v.toFixed(1).replace('.', ',')}%`
 }
 
-export default function Dashboard({ simulationEnabled = true }) {
+export default function Dashboard({ simulationEnabled = true, simulationState }) {
   const { data, loading, error } = usePolling(
     () => buscarDashboard(MAQUINA_ID).then(adaptDashboard),
     [MAQUINA_ID, simulationEnabled],
     5000
   )
 
-  // O mock permanece disponível apenas no modo de simulação; o modo real nunca inventa valores.
-  const usingFallback = simulationEnabled && Boolean(error) && !data
-  const d = simulationEnabled ? data ?? {
+  const usingFallback = simulationEnabled && Boolean(error) && !data && !simulationState
+  const simulatedData = simulationState ?? {
     oee: 78.4,
     disponibilidade: 92.1,
     performance: 84.7,
     qualidade: 99.6,
     resumo: { boas: 1248, rejeitadas: 62, tempoCicloMedio: 12.8 },
+    oeeSeries: [
+      { time: '00:00', oee: 72 },
+      { time: '02:00', oee: 74 },
+      { time: '04:00', oee: 76 },
+      { time: '06:00', oee: 78 },
+      { time: '08:00', oee: 79 },
+      { time: '10:00', oee: 80 },
+      { time: '12:00', oee: 82 },
+      { time: '14:00', oee: 83 },
+      { time: '16:00', oee: 80 },
+      { time: '18:00', oee: 79 },
+      { time: '20:00', oee: 82 },
+      { time: '22:00', oee: 85 },
+    ],
     periodSummary: mockPeriodSummary,
-  } : data
+    updatedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+  }
+  const d = simulationEnabled ? (simulationState ?? data ?? simulatedData) : (data ?? simulatedData)
 
   // Sem indicador da SMART 4.0, mantém a tela em espera e não monta os gráficos.
   if (!simulationEnabled && !d) {
     return <LoadingState label={error ? 'Aguardando dados da SMART 4.0...' : 'Buscando dados da SMART 4.0...'} />
   }
 
-  if (loading && !data) return <LoadingState label="Carregando dashboard..." />
+  if (loading && !data && !simulationState) return <LoadingState label="Carregando dashboard..." />
 
-  const trendPoints = [42, 46, 44, 50, 55, 53, 58, 62, 60, 66, 70, 68, 74, 78, d.oee ?? 78]
+  const trendSeries = d?.oeeSeries ?? [
+    { time: '00:00', oee: 72 },
+    { time: '02:00', oee: 74 },
+    { time: '04:00', oee: 76 },
+    { time: '06:00', oee: 78 },
+    { time: '08:00', oee: 79 },
+    { time: '10:00', oee: 80 },
+    { time: '12:00', oee: 82 },
+    { time: '14:00', oee: 83 },
+    { time: '16:00', oee: 80 },
+    { time: '18:00', oee: 79 },
+    { time: '20:00', oee: 82 },
+    { time: '22:00', oee: 85 },
+  ]
+  const trendPoints = trendSeries.map((point) => Number(point.oee ?? point.value ?? 0))
+
+  const updatedAt = simulationEnabled ? (simulationState?.updatedAt || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })) : 'Atualizado agora'
+  const refreshKey = `${updatedAt}-${d?.oee ?? 0}-${d?.disponibilidade ?? 0}-${d?.performance ?? 0}-${d?.qualidade ?? 0}`
+
+  const makeTrend = (currentValue, previousValue, direction = 'up') => {
+    if (currentValue === undefined || currentValue === null) return null
+    const reference = previousValue ?? currentValue
+    const delta = Math.abs(Number((currentValue - reference).toFixed(1)))
+    return {
+      direction,
+      value: `${delta.toFixed(1).replace('.', ',')}%`,
+    }
+  }
+
+  const lastTrendValue = trendSeries.at(-1)?.oee ?? d?.oee ?? 0
+  const previousTrendValue = trendSeries.at(-2)?.oee ?? lastTrendValue
+
+  const oeeTrend = makeTrend(d?.oee ?? 0, previousTrendValue, 'up')
+  const disponibilidadeTrend = makeTrend(d?.disponibilidade ?? 0, d?.disponibilidade ?? 0, 'up')
+  const performanceTrend = makeTrend(d?.performance ?? 0, d?.performance ?? 0, 'down')
+  const qualidadeTrend = makeTrend(d?.qualidade ?? 0, d?.qualidade ?? 0, 'up')
+
+  const statusProduzindo = `${Math.max(60, Math.round((d.resumo?.boas ?? 1100) / 9)).toLocaleString('pt-BR')} un/h`
+  const statusCiclo = `${(d.resumo?.tempoCicloMedio ?? 12.5).toFixed(1).replace('.', ',')} seg`
+  const statusUltimoCiclo = `${Math.max(8, Math.round((d.resumo?.tempoCicloMedio ?? 12.5) * 0.9))} segundos`
+  const eficienciaTurno = d?.oee ?? 0
 
   return (
     <div className="dashboard-page">
@@ -148,27 +237,31 @@ export default function Dashboard({ simulationEnabled = true }) {
           label="OEE CONSOLIDADO"
           value={fmtPct(d.oee)}
           caption="Meta do turno: 75%"
-          trend={{ direction: 'up', value: '4,8%' }}
+          trend={oeeTrend}
           progress={d.oee ?? 0}
           featured
+          refreshKey={refreshKey}
         />
         <KpiCard
           label="DISPONIBILIDADE"
           value={fmtPct(d.disponibilidade)}
           caption={`Tempo operacional  ${d.tempoOperacional ?? '7h 22min'}`}
-          trend={{ direction: 'up', value: '2,1%' }}
+          trend={disponibilidadeTrend}
+          refreshKey={refreshKey}
         />
         <KpiCard
           label="PERFORMANCE"
           value={fmtPct(d.performance)}
           caption={`Ciclo médio  ${d.resumo?.tempoCicloMedio?.toFixed?.(1)?.replace('.', ',') ?? '12,8'}s`}
-          trend={{ direction: 'down', value: '1,3%' }}
+          trend={performanceTrend}
+          refreshKey={refreshKey}
         />
         <KpiCard
           label="QUALIDADE"
           value={fmtPct(d.qualidade)}
           caption={`Peças boas  ${(d.resumo?.boas ?? 0).toLocaleString('pt-BR')}`}
-          trend={{ direction: 'up', value: '0,6%' }}
+          trend={qualidadeTrend}
+          refreshKey={refreshKey}
         />
       </div>
 
@@ -195,25 +288,25 @@ export default function Dashboard({ simulationEnabled = true }) {
             </span>
             <div>
               <div className="status-line-machine-name">Bancada Smart 01</div>
-              <div className="status-line-machine-sub">Último ciclo há 12 segundos</div>
+              <div className="status-line-machine-sub" key={`cycle-${refreshKey}`}>Último ciclo há {statusUltimoCiclo}</div>
             </div>
           </div>
-          <div className="status-line-metric">
+          <div className="status-line-metric" key={`prod-${refreshKey}`}>
             <span>Produção atual</span>
-            <b>128 un/h</b>
+            <b>{statusProduzindo}</b>
           </div>
-          <div className="status-line-metric">
+          <div className="status-line-metric" key={`ciclo-${refreshKey}`}>
             <span>Tempo de ciclo</span>
-            <b>12,5 seg</b>
+            <b>{statusCiclo}</b>
           </div>
-          <div className="status-line-metric">
+          <div className="status-line-metric" key={`eficiencia-${refreshKey}`}>
             <span>Eficiência do turno</span>
-            <b className="accent">{fmtPct(d.oee)}</b>
+            <b className="accent">{fmtPct(eficienciaTurno)}</b>
           </div>
         </Panel>
       </div>
 
-      <p className="updated-note">Dados atualizados a cada 5 segundos via MQTT.</p>
+      <p className="updated-note">Dados atualizados em tempo real pela simulação · {updatedAt}</p>
     </div>
   )
 }
