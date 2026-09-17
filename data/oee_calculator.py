@@ -221,6 +221,9 @@ def varrer_diretorio(
     gravar_banco: bool = True,
     intervalo_segundos: int = 30,
 ):
+    if intervalo_segundos <= 0:
+        raise ValueError("intervalo_segundos deve ser maior que zero")
+
     diretorio_path = Path(diretorio)
     processados = {}
 
@@ -260,13 +263,16 @@ def main():
     args = parser.parse_args()
 
     if args.watch_dir:
-        varrer_diretorio(
-            diretorio=args.watch_dir,
-            maquina_id=args.maquina_id,
-            bancada_id=args.bancada_id,
-            gravar_banco=args.gravar_banco,
-            intervalo_segundos=args.intervalo,
-        )
+        try:
+            varrer_diretorio(
+                diretorio=args.watch_dir,
+                maquina_id=args.maquina_id,
+                bancada_id=args.bancada_id,
+                gravar_banco=args.gravar_banco,
+                intervalo_segundos=args.intervalo,
+            )
+        except KeyboardInterrupt:
+            logger.info("Varredura interrompida pelo usuário")
         return
 
     if not args.csv:
