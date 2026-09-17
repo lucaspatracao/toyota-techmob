@@ -251,7 +251,7 @@ def main():
     entrada.add_argument('--csv', help='Caminho do CSV de produção')
     entrada.add_argument('--simular', action='store_true', help='Executar simulação')
     parser.add_argument('--horas', type=float, default=8, help='Duração da simulação em horas')
-        parser.add_argument('--seed', type=int, help='Semente opcional para reproduzir a simulação')
+    parser.add_argument('--seed', type=int, help='Semente opcional para reproduzir a simulação')
     parser.add_argument('--saida', help='Arquivo CSV para salvar os dados simulados')
     parser.add_argument('--relatorio', action='store_true', help='Gerar relatório detalhado')
     
