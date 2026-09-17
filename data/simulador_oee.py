@@ -11,9 +11,8 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
-import numpy as np
 import pandas as pd
 
 # Configuração de logging
