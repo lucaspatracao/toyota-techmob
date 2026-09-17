@@ -94,7 +94,7 @@ class SimuladorBancadaSmart:
             taxa_defeito = self.config.taxa_defeito_base + random.gauss(0, 0.005)
             taxa_defeito = max(0, min(0.1, taxa_defeito))
             
-            pecas_defeituosas = int(pecas_ciclo * taxa_defeito)
+            pecas_defeituosas = int(random.random() < taxa_defeito)
             pecas_boas = pecas_ciclo - pecas_defeituosas
         else:
             pecas_boas = 0
