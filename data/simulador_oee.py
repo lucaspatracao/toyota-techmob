@@ -237,8 +237,9 @@ RELATÓRIO OEE - TECHMOB 4.0
 def main():
     """Função principal"""
     parser = argparse.ArgumentParser(description='Cálculo do OEE - TechMob 4.0')
-    parser.add_argument('--csv', help='Caminho do CSV de produção')
-    parser.add_argument('--simular', action='store_true', help='Executar simulação')
+    entrada = parser.add_mutually_exclusive_group(required=True)
+    entrada.add_argument('--csv', help='Caminho do CSV de produção')
+    entrada.add_argument('--simular', action='store_true', help='Executar simulação')
     parser.add_argument('--horas', type=float, default=8, help='Duração da simulação em horas')
     parser.add_argument('--relatorio', action='store_true', help='Gerar relatório detalhado')
     
@@ -257,9 +258,6 @@ def main():
         df = pd.read_csv(args.csv)
         df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
         logger.info(f"Carregados {len(df)} registros do arquivo")
-    else:
-        logger.error("Use --simular ou --csv para fornecer dados")
-        sys.exit(1)
     
     # Calcula indicadores
     indicadores = calcular_oee(df, config)
