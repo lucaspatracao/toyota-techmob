@@ -100,7 +100,7 @@ export default function Sidebar({ collapsed = false, mobileOpen = false, onClose
 
         <div className="sidebar-status-card">
           <div className="sidebar-status-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-on-dark-muted)" strokeWidth="1.6">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sidebar-text-muted)" strokeWidth="1.6">
               <rect x="3" y="4" width="18" height="12" rx="1.5" />
               <path d="M8 20h8M12 16v4" />
             </svg>
