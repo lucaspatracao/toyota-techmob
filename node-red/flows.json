@@ -1,0 +1,49 @@
+[
+    {
+        "id": "inject-smart-auto",
+        "type": "inject",
+        "z": "flow1",
+        "name": "Auto Inject",
+        "topic": "",
+        "payload": "{\"maquina\":\"BANCADA_SMART_01\",\"pecas_produzidas\":100,\"tempo_producao\":3600,\"paradas\":2,\"tempo_parada\":300}",
+        "payloadType": "json",
+        "repeat": "10",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 100,
+        "y": 100,
+        "wires": [["function-normaliza-auto"]]
+    },
+    {
+        "id": "function-normaliza-auto",
+        "type": "function",
+        "z": "flow1",
+        "name": "Normaliza",
+        "func": "var dados = msg.payload;\nvar timestamp = new Date().toISOString();\nvar linha = timestamp + \",\" + dados.maquina + \",\" + dados.pecas_produzidas + \",\" + dados.tempo_producao + \",\" + dados.paradas + \",\" + dados.tempo_parada + \"\\n\";\nmsg.payload = linha;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 280,
+        "y": 100,
+        "wires": [["file-grava-auto"]]
+    },
+    {
+        "id": "file-grava-auto",
+        "type": "file",
+        "z": "flow1",
+        "name": "Grava CSV",
+        "filename": "C:\\Users\\49615129828\\toyota-techmob\\data\\dados_producao.csv",
+        "appendNewline": false,
+        "createDir": true,
+        "overwriteFile": false,
+        "encoding": "utf8",
+        "x": 460,
+        "y": 100,
+        "wires": [[]]
+    },
+    {
+        "id": "flow1",
+        "type": "tab",
+        "label": "Flow 1"
+    }
+]

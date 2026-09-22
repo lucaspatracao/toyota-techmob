@@ -3,6 +3,7 @@ package com.toyota.techmob.backend.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +22,7 @@ public class HistoricoProducaoController {
     private final HistoricoProducaoService historicoProducaoService;
 
     @GetMapping("/{maquinaId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<HistoricoProducaoDTO>> historico(@PathVariable Long maquinaId) {
         return ResponseEntity.ok(historicoProducaoService.historico(maquinaId));
     }

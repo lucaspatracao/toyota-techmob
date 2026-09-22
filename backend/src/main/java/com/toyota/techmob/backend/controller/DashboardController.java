@@ -1,6 +1,7 @@
 package com.toyota.techmob.backend.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,7 @@ public class DashboardController {
     private final MaquinaService maquinaService;
 
     @GetMapping("/{maquinaId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<DashboardResponseDTO> buscarDashboard(@PathVariable Long maquinaId) {
         return ResponseEntity.ok(maquinaService.buscarDashboard(maquinaId));
     }

@@ -74,10 +74,13 @@ CREATE INDEX idx_historico_producao_maquina_timestamp
 -- ---------------------------------------------------------------------
 -- Seed opcional: uma máquina de exemplo para facilitar os testes iniciais
 -- do backend e do front-end antes da bancada real estar integrada.
+-- Mantém a Bancada Smart 01 no id = 1 para preservar compatibilidade com
+-- as requisições da API e os dashboards esperados pelo time.
 -- ---------------------------------------------------------------------
-INSERT INTO maquina (identificador_bancada, nome, status_operacional, capacidade_teorica, tempo_planejado_producao_s)
-VALUES ('BANCADA_SMART_01', 'Bancada Smart 4.0 - Lab SENAI', 'PARADA', 10.0, 28800)
+INSERT INTO maquina (id, identificador_bancada, nome, status_operacional, capacidade_teorica, tempo_planejado_producao_s)
+VALUES (1, 'BANCADA_SMART_01', 'Bancada Smart 4.0 - Lab SENAI', 'PARADA', 10.0, 28800)
 ON DUPLICATE KEY UPDATE
+    identificador_bancada = VALUES(identificador_bancada),
     nome = VALUES(nome),
     status_operacional = VALUES(status_operacional),
     capacidade_teorica = VALUES(capacidade_teorica),
