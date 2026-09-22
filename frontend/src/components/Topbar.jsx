@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../context/AuthContext'
 import '../styles/topbar.css'
 
 const IconBell = () => (
@@ -32,7 +34,42 @@ export default function Topbar({
   simulationEnabled = true,
   onToggleSimulation,
 }) {
+  const navigate = useNavigate()
+  const auth = useContext(AuthContext)
+  const user = auth?.user ?? {
+    name: 'Operador Demo',
+    email: 'operador@demo.local',
+    type: 'manager',
+  }
+  const logout = auth?.logout ?? (() => {})
   const [notifOpen, setNotifOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+
+  const getUserInitials = () => {
+    if (!user?.name) return 'U'
+    return user.name
+      .split(' ')
+      .slice(0, 2)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/dashboard')
+  }
+
+  const getRoleDisplay = () => {
+    if (!user) return ''
+    const roleMap = {
+      'supervisor-a': 'Supervisor Turno A',
+      'supervisor-b': 'Supervisor Turno B',
+      'supervisor-c': 'Supervisor Turno C',
+      manager: 'Gerente Geral',
+    }
+    return roleMap[user.type] || 'Usuário'
+  }
 
   return (
     <header className="topbar">
@@ -56,7 +93,6 @@ export default function Topbar({
       </div>
 
       <div className="topbar-right">
-        {/* Ao desligar, a Dashboard abandona o fallback mock e aguarda a API real. */}
         <button
           type="button"
           className={`simulation-toggle ${simulationEnabled ? 'simulation-on' : 'simulation-off'}`}
@@ -85,13 +121,28 @@ export default function Topbar({
           <span className="topbar-badge">3</span>
         </button>
 
-        <div className="topbar-user">
-          <div className="topbar-avatar">RS</div>
+        <div className="topbar-user" onClick={() => setUserMenuOpen((v) => !v)} style={{ cursor: 'pointer' }}>
+          <div className="topbar-avatar">{getUserInitials()}</div>
           <div className="topbar-user-meta">
-            <span className="topbar-user-name">Rafael Souza</span>
-            <span className="topbar-user-role">Supervisor de Produção</span>
+            <span className="topbar-user-name">{user?.name || 'Usuário'}</span>
+            <span className="topbar-user-role">{getRoleDisplay()}</span>
           </div>
         </div>
+
+        {userMenuOpen && (
+          <div className="topbar-user-menu">
+            <div className="topbar-user-menu-item">{user?.email}</div>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '8px 0' }} />
+            <button
+              type="button"
+              className="topbar-user-menu-item"
+              onClick={handleLogout}
+              style={{ color: 'var(--accent-red)', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}
+            >
+              Sair
+            </button>
+          </div>
+        )}
       </div>
 
       {notifOpen && (
