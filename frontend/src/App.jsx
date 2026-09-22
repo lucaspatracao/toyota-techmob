@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, cloneElement } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import AuthProvider from './context/AuthContext'
 import Sidebar from './components/Sidebar.jsx'
 import Topbar from './components/Topbar.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -8,7 +9,10 @@ import Historico from './pages/Historico.jsx'
 import { createInitialSimulationState } from './data/simulation.js'
 import './styles/layout.css'
 
-export default function App() {
+/**
+ * Layout principal (com sidebar, topbar, etc)
+ */
+function AppLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('smart40-theme') || 'light')
@@ -36,8 +40,6 @@ export default function App() {
   const handleToggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   const handleToggleSidebar = () => {
-    // Em telas pequenas o hambúrguer abre/fecha o menu off-canvas;
-    // em telas grandes ele recolhe a sidebar para 64px (só ícones).
     if (window.innerWidth <= 1024) {
       setMobileOpen((v) => !v)
     } else {
@@ -45,33 +47,70 @@ export default function App() {
     }
   }
 
+  const pageContent = children ? cloneElement(children, { simulationEnabled, simulationState }) : null
+
   return (
-    <HashRouter>
-      <div className="app-shell">
-        <Sidebar
-          collapsed={collapsed}
-          mobileOpen={mobileOpen}
-          onCloseMobile={() => setMobileOpen(false)}
-          onToggleSidebar={handleToggleSidebar}
+    <div className="app-shell">
+      <Sidebar
+        collapsed={collapsed}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+        onToggleSidebar={handleToggleSidebar}
+      />
+      <div className="app-main">
+        <Topbar
+          mqttConnected
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          simulationEnabled={simulationEnabled}
+          onToggleSimulation={() => setSimulationEnabled((enabled) => !enabled)}
         />
-        <div className="app-main">
-          <Topbar
-            mqttConnected
-            theme={theme}
-            onToggleTheme={handleToggleTheme}
-            simulationEnabled={simulationEnabled}
-            onToggleSimulation={() => setSimulationEnabled((enabled) => !enabled)}
-          />
-          <main className="app-content">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard simulationEnabled={simulationEnabled} simulationState={simulationState} />} />
-              <Route path="/producao" element={<Producao simulationEnabled={simulationEnabled} simulationState={simulationState} />} />
-              <Route path="/historico" element={<Historico simulationEnabled={simulationEnabled} simulationState={simulationState} />} />
-            </Routes>
-          </main>
-        </div>
+        <main className="app-content">
+          {pageContent}
+        </main>
       </div>
-    </HashRouter>
+    </div>
+  )
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route
+        path="/dashboard"
+        element={
+          <AppLayout>
+            <Dashboard />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/producao"
+        element={
+          <AppLayout>
+            <Producao />
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/historico"
+        element={
+          <AppLayout>
+            <Historico />
+          </AppLayout>
+        }
+      />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AppRoutes />
+      </HashRouter>
+    </AuthProvider>
   )
 }
