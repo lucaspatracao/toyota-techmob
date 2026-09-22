@@ -4,11 +4,9 @@
 > 
 > **Equipe:** Lucas · Nykolas · Otávio · Rafael · Samuel
 
----
-
 ## Objetivo
 
-Construir uma aplicação completa de coleta, processamento, armazenamento e visualização de dados de produção de uma máquina industrial (**Bancada Smart 4.0**), calculando o indicador **OEE (Overall Equipment Effectiveness)** e disponibilizando essa informação em um dashboard web em tempo (quase) real, hospedado em nuvem.
+Construir uma aplicação completa de coleta, processamento, armazenamento e visualização de dados de produção de uma máquina industrial (**Bancada Smart 4.0**), calculando o indicador **OEE (Overall Equipment Effectiveness)** e disponibilizando essa informação em um dashboard web em tempo (quase) real.
 
 ## Arquitetura
 
@@ -24,9 +22,13 @@ Construir uma aplicação completa de coleta, processamento, armazenamento e vis
 
 Fluxo geral: **Bancada Smart 4.0 → MQTT → Node-RED → CSV / MySQL → API REST (Spring Boot) → Dashboard (React)**
 
-> Decisão de arquitetura: a persistência é híbrida — dados brutos ciclo a ciclo em CSV, dados estruturais e indicadores calculados no MySQL local.
+## Estrutura do repositório
 
-## Estrutura do Repositório
+- `backend/`: API Spring Boot
+- `frontend/`: aplicação React
+- `infra/`: schema MySQL e seed inicial
+- `data/`: dados e scripts auxiliares
+- `node/`: flow do Node-RED
 
 ```
 toyota-techmob/
@@ -61,36 +63,43 @@ toyota-techmob/
 └── README.md
 ```
 
-## Como rodar localmente
+- Java 25+
+- Maven
+- Node.js + npm
+- MySQL local
 
 ### Pré-requisitos
 - JDK 25 e Maven
 - Node.js e npm
 - MySQL Workbench / MySQL Server local
 
-### Banco local MySQL
-
-Crie o banco e use o schema em `infra/schema.sql`.
+Crie o banco e execute o script em `infra/schema.sql`.
 
 ```sql
 CREATE DATABASE IF NOT EXISTS techmob CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE techmob;
 ```
 
-Importe o conteúdo de `infra/schema.sql` no MySQL Workbench, ou execute diretamente o script no cliente MySQL.
+Importe o conteúdo de `infra/schema.sql` no MySQL Workbench ou via cliente MySQL.
 
-### Back-end
+## Back-end
 
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-No Windows PowerShell:
+A senha do banco não fica hardcoded no projeto. Para rodar localmente, defina as variáveis de ambiente antes de iniciar a aplicação:
 
 ```powershell
-cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "123456"
+$env:DB_URL = "jdbc:mysql://localhost:3306/techmob?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8"
+
+cd "c:\Users\49615129828\toyota-techmob\backend"
 .\mvnw.cmd spring-boot:run
+```
+
+Também há um atalho para uso rápido no Windows:
+
+```powershell
+cd "c:\Users\49615129828\toyota-techmob\backend"
+.\run-local.cmd
 ```
 
 O back-end sobe na porta padrão do Spring Boot (`8080`) e se conecta ao MySQL local usando as variáveis `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD`.
@@ -101,17 +110,21 @@ No Windows PowerShell, configure ao menos a senha antes de iniciar:
 $env:DB_PASSWORD = "sua-senha"
 ```
 
-### Front-end
+- http://localhost:8080
+- health check: http://localhost:8080/actuator/health
 
-```bash
-cd frontend
+## Front-end
+
+```powershell
+cd "c:\Users\49615129828\toyota-techmob\frontend"
+Set-ExecutionPolicy -Scope Process Bypass
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0
 ```
 
-O front-end atualmente utiliza React + Vite e dados mockados como fallback durante a integração com a API. A aplicação estará disponível em `http://localhost:5173` por padrão.
+A aplicação local geralmente é acessada em:
 
-### Python / cálculo do OEE
+- http://localhost:5173
 
 ```bash
 cd data
@@ -121,8 +134,10 @@ pip install -r requirements.txt
 python oee_calculator.py --csv dados_producao_exemplo.csv --maquina-id 1 --gravar-banco
 ```
 
-Esse script lê o CSV bruto e grava os indicadores no banco MySQL local usando as variáveis de ambiente `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD`.
+- O seed em `infra/schema.sql` fixa a máquina `BANCADA_SMART_01` com `id = 1` para manter a compatibilidade das rotas e do dashboard.
+- Os endpoints do backend foram organizados para leitura direta do MySQL com transações somente leitura.
+- O CORS está configurado para aceitar requisições do frontend local (`localhost:5173`).
 
----
+## Equipe TechMob 4.0
 
-**Equipe TechMob 4.0 © 2026**
+© 2026
