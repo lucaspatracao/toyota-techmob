@@ -188,6 +188,39 @@
   font-size: 11px;
   color: var(--text-tertiary);
 }
+.topbar-user-role {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.topbar-user-menu {
+  position: absolute;
+  top: 64px;
+  right: 20px;
+  min-width: 200px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 8px 0;
+  z-index: 30;
+  animation: notif-in 0.18s ease-out;
+}
+
+.topbar-user-menu-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.topbar-user-menu-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
 @media (max-width: 700px) {
   .topbar-user-meta {
     display: none;

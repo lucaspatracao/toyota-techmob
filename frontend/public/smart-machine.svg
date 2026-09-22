@@ -1,0 +1,120 @@
+<svg width="100%" height="100%" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(192, 38, 211, 0.08) 100%);">
+  <defs>
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8E8E8;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#B0B0B0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#808080;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="darkMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#505050;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2A2A2A;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Base e Estrutura -->
+  <g filter="url(#shadow)">
+    <!-- Pedestal base (metal cinzento) -->
+    <rect x="120" y="280" width="260" height="160" rx="8" fill="url(--metalGrad)" stroke="#606060" stroke-width="1.5"/>
+    
+    <!-- Painel frontal com vidro -->
+    <rect x="130" y="295" width="240" height="130" rx="6" fill="#1a1a2e" stroke="#404040" stroke-width="2" opacity="0.9"/>
+    
+    <!-- Brilho vidro (reflexo) -->
+    <rect x="135" y="300" width="230" height="15" rx="3" fill="white" opacity="0.1"/>
+    
+    <!-- Moldura superior da máquina -->
+    <rect x="100" y="140" width="300" height="160" rx="12" fill="url(--metalGrad)" stroke="#505050" stroke-width="2"/>
+    
+    <!-- Área de trabalho (superfície superior) -->
+    <ellipse cx="250" cy="160" rx="135" ry="45" fill="#909090" stroke="#606060" stroke-width="2"/>
+    
+    <!-- Cilindros de ar/componentes (esquerda) -->
+    <g transform="translate(160, 120)">
+      <circle cx="0" cy="0" r="8" fill="#A0A0A0" stroke="#606060" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="5" fill="#D0D0D0"/>
+      <line x1="0" y1="8" x2="0" y2="35" stroke="#808080" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    
+    <!-- Cilindros (centro) -->
+    <g transform="translate(250, 110)">
+      <circle cx="0" cy="0" r="9" fill="#A0A0A0" stroke="#606060" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="5" fill="#D0D0D0"/>
+      <line x1="0" y1="9" x2="0" y2="40" stroke="#808080" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    
+    <!-- Cilindros (direita) -->
+    <g transform="translate(340, 130)">
+      <circle cx="0" cy="0" r="8" fill="#A0A0A0" stroke="#606060" stroke-width="1.5"/>
+      <circle cx="0" cy="0" r="5" fill="#D0D0D0"/>
+      <line x1="0" y1="8" x2="0" y2="32" stroke="#808080" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    
+    <!-- Braço robótico/suporte (estrutura superior) -->
+    <g stroke="#808080" stroke-width="8" fill="none" stroke-linecap="round">
+      <path d="M 360 140 Q 380 80 360 40" />
+      <circle cx="360" cy="40" r="12" fill="#A0A0A0" stroke="#606060" stroke-width="2"/>
+      <circle cx="360" cy="40" r="7" fill="#E0E0E0"/>
+    </g>
+    
+    <!-- Câmera/sensor superior -->
+    <g transform="translate(380, 60)">
+      <rect x="-12" y="-8" width="24" height="16" rx="2" fill="#505050" stroke="#303030" stroke-width="1"/>
+      <circle cx="0" cy="0" r="8" fill="#1A1A1A" stroke="#606060" stroke-width="1"/>
+      <circle cx="0" cy="0" r="5" fill="#4F46E5" opacity="0.6"/>
+    </g>
+    
+    <!-- Painel de controle (lado frontal direito) -->
+    <g transform="translate(370, 310)">
+      <!-- Fundo painel -->
+      <rect x="-40" y="-30" width="70" height="60" rx="4" fill="#303030" stroke="#505050" stroke-width="1.5"/>
+      
+      <!-- Botões coloridos -->
+      <circle cx="-20" cy="-15" r="5" fill="#22C55E" stroke="#1A7F3A" stroke-width="1"/>
+      <circle cx="0" cy="-15" r="5" fill="#F59E0B" stroke="#B45309" stroke-width="1"/>
+      <circle cx="20" cy="-15" r="5" fill="#EF4444" stroke="#991B1B" stroke-width="1"/>
+      
+      <!-- Display -->
+      <rect x="-35" y="-2" width="60" height="18" rx="2" fill="#0F172A" stroke="#4F46E5" stroke-width="1.5"/>
+      <line x1="-30" y1="2" x2="25" y2="2" stroke="#4F46E5" stroke-width="0.5" opacity="0.7"/>
+      <line x1="-30" y1="6" x2="20" y2="6" stroke="#4F46E5" stroke-width="0.5" opacity="0.7"/>
+      <line x1="-30" y1="10" x2="15" y2="10" stroke="#4F46E5" stroke-width="0.5" opacity="0.7"/>
+      
+      <!-- Indicador de potência -->
+      <circle cx="-20" cy="25" r="4" fill="#22C55E" opacity="0.8"/>
+    </g>
+    
+    <!-- Estrutura lateral esquerda -->
+    <g stroke="#606060" stroke-width="6" fill="none" stroke-linecap="round">
+      <path d="M 110 160 L 110 280" />
+    </g>
+    
+    <!-- Estrutura lateral direita -->
+    <g stroke="#606060" stroke-width="6" fill="none" stroke-linecap="round">
+      <path d="M 390 160 L 390 280" />
+    </g>
+    
+    <!-- Pés/Rodízios -->
+    <g fill="#606060">
+      <rect x="130" y="435" width="30" height="12" rx="4"/>
+      <rect x="220" y="435" width="30" height="12" rx="4"/>
+      <rect x="310" y="435" width="30" height="12" rx="4"/>
+      <rect x="380" y="435" width="30" height="12" rx="4"/>
+    </g>
+    
+    <!-- Luzes LED de status -->
+    <g transform="translate(250, 360)">
+      <circle cx="-50" cy="0" r="4" fill="#22C55E" opacity="0.9"/>
+      <circle cx="-30" cy="0" r="4" fill="#4F46E5" opacity="0.9"/>
+      <circle cx="-10" cy="0" r="4" fill="#22C55E" opacity="0.7"/>
+      <circle cx="10" cy="0" r="4" fill="#F59E0B" opacity="0.8"/>
+      <circle cx="30" cy="0" r="4" fill="#22C55E" opacity="0.9"/>
+    </g>
+  </g>
+
+  <!-- Texto descritivo -->
+  <text x="250" y="470" font-size="20" font-weight="700" text-anchor="middle" fill="#1E293B" font-family="Inter, sans-serif">SMART 4.0</text>
+  <text x="250" y="495" font-size="12" text-anchor="middle" fill="#64748B" font-family="Inter, sans-serif">Bancada Inteligente de Produção</text>
+</svg>

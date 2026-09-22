@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "axios": "^1.19.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
   }
 }
