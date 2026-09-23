@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Node-RED para ingesta de dados MQTT - Toyota TechMob",
   "dependencies": {
+    "node-red": "^5.0.7",
     "node-red-contrib-aedes": "^1.3.0"
   }
 }
