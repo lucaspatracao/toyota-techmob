@@ -1,4 +1,8 @@
 @echo off
-REM Script para iniciar Node-RED localizado no projeto
+REM Instale as dependencias com: npm install --prefix node-red
 cd /d "%~dp0"
-"%APPDATA%\npm\node-red.cmd" --userDir "%CD%\node-red" --settings "%CD%\node-red\settings.js"
+if not exist "%CD%\node-red\node_modules\.bin\node-red.cmd" (
+	echo Node-RED nao esta instalado. Execute: npm install --prefix node-red
+	exit /b 1
+)
+"%CD%\node-red\node_modules\.bin\node-red.cmd" --userDir "%CD%\node-red" --settings "%CD%\node-red\settings.js"
