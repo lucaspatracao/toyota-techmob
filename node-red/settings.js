@@ -3,7 +3,7 @@ module.exports = {
     mqttReconnectTime: 15000,
     serialReconnectTime: 15000,
     debugMaxLength: 1000,
-    adminAuth: false,
+    adminAuth: null,
     https: false,
     flowFile: 'flows.json',
     credentialSecret: 'my-secret-key',
