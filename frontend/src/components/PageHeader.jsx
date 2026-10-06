@@ -28,7 +28,7 @@ export default function PageHeader({ breadcrumb, eyebrow, title, subtitle, right
       </div>
       <div className="page-header-right">
         <span className={`pill ${systemActive ? 'pill-online' : 'pill-paused'}`}>
-          <span className={`dot ${systemActive ? 'dot-green' : 'dot-orange'}`} />
+          <span className={`dot ${systemActive ? 'dot-green' : 'dot-red'}`} />
           {systemActive ? 'SISTEMA ONLINE' : 'SISTEMA EM ESPERA'}
         </span>
         <span className="pill pill-date">
