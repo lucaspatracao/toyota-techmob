@@ -22,6 +22,10 @@ const ChevronsRight = () => (
 )
 
 export default function Pagination({ page, totalPages, onChange, itemsPerPage, onItemsPerPageChange, totalItems, startItem, endItem }) {
+  const pageNumbers = [...new Set([1, 2, 3, page - 1, page, page + 1, totalPages])]
+    .filter((number) => number >= 1 && number <= totalPages)
+    .sort((first, second) => first - second)
+
   return (
     <div className="pagination">
       <div className="pagination-perpage">
@@ -40,17 +44,14 @@ export default function Pagination({ page, totalPages, onChange, itemsPerPage, o
         <button className="page-btn" disabled={page === 1} onClick={() => onChange(page - 1)}>
           <ChevronLeft />
         </button>
-        {Array.from({ length: Math.min(3, totalPages) }, (_, i) => i + 1).map((n) => (
-          <button key={n} className={`page-btn num${n === page ? ' active' : ''}`} onClick={() => onChange(n)}>
-            {n}
-          </button>
+        {pageNumbers.map((number, index) => (
+          <span className="page-number-group" key={number}>
+            {index > 0 && number - pageNumbers[index - 1] > 1 && <span className="page-ellipsis">...</span>}
+            <button className={`page-btn num${number === page ? ' active' : ''}`} onClick={() => onChange(number)}>
+              {number}
+            </button>
+          </span>
         ))}
-        {totalPages > 3 && <span className="page-ellipsis">...</span>}
-        {totalPages > 3 && (
-          <button className={`page-btn num${page === totalPages ? ' active' : ''}`} onClick={() => onChange(totalPages)}>
-            {totalPages}
-          </button>
-        )}
         <button className="page-btn" disabled={page === totalPages} onClick={() => onChange(page + 1)}>
           <ChevronRight />
         </button>

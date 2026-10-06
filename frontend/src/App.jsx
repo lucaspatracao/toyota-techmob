@@ -54,15 +54,18 @@ function AppLayout({ children }) {
       <Sidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
+        simulationEnabled={simulationEnabled}
         onCloseMobile={() => setMobileOpen(false)}
         onToggleSidebar={handleToggleSidebar}
       />
       <div className="app-main">
         <Topbar
-          mqttConnected
+          mqttConnected={simulationEnabled}
           theme={theme}
           onToggleTheme={handleToggleTheme}
           simulationEnabled={simulationEnabled}
+          onToggleSidebar={handleToggleSidebar}
+          mobileOpen={mobileOpen}
           onToggleSimulation={() => setSimulationEnabled((enabled) => !enabled)}
         />
         <main className="app-content">
