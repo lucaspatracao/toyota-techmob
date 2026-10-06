@@ -2,7 +2,7 @@
  * Anel com dois segmentos (peças boas / rejeitadas) usado no card
  * "Resumo (Últimas 24 horas)".
  */
-export default function SummaryDonut({ good, rejected, size = 140, stroke = 16 }) {
+export default function SummaryDonut({ good, rejected, size = 190, stroke = 18 }) {
   const total = good + rejected
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
@@ -19,7 +19,7 @@ export default function SummaryDonut({ good, rejected, size = 140, stroke = 16 }
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="var(--accent-red)"
+        stroke="var(--chart-rejected)"
         strokeWidth={stroke}
         strokeDasharray={`${rejectedLen} ${c - rejectedLen}`}
         strokeDashoffset={0}
@@ -31,13 +31,13 @@ export default function SummaryDonut({ good, rejected, size = 140, stroke = 16 }
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="var(--accent-green)"
+        stroke="var(--chart-good)"
         strokeWidth={stroke}
         strokeDasharray={`${goodLen} ${c - goodLen}`}
         strokeDashoffset={-rejectedLen}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
-      <text x="50%" y="46%" textAnchor="middle" fontSize={size * 0.16} fontWeight="700" fill="var(--text-primary)">
+      <text x="50%" y="46%" textAnchor="middle" fontSize={size * 0.2} fontWeight="700" fill="var(--text-primary)">
         {total.toLocaleString('pt-BR')}
       </text>
       <text x="50%" y="60%" textAnchor="middle" fontSize={size * 0.09} fill="var(--text-tertiary)">

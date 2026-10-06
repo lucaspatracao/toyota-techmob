@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import PageHeader from '../components/PageHeader.jsx'
 import Panel from '../components/Panel.jsx'
 import { LoadingState } from '../components/StateFeedback.jsx'
@@ -16,11 +17,7 @@ function KpiCard({ label, value, unit, trend, caption, featured, progress, refre
     <div key={refreshKey} className={`panel kpi-card${featured ? ' kpi-card-featured' : ''}`}>
       <div className="kpi-card-top">
         <span className="kpi-label">{label}</span>
-        {trend && (
-          <span className={`kpi-trend ${trend.direction}`}>
-            {trend.direction === 'up' ? '↑' : '↓'} {trend.value}
-          </span>
-        )}
+        {trend && <span className={`kpi-trend ${trend.direction}`}>{trend.direction === 'up' ? '↑' : '↓'} {trend.value}</span>}
       </div>
       <div className="kpi-value">
         {value}
@@ -36,63 +33,32 @@ function KpiCard({ label, value, unit, trend, caption, featured, progress, refre
   )
 }
 
-/** Mini gráfico de área da evolução do OEE — decorativo, a partir do resumo do período. */
 function TrendChart({ points }) {
-  const w = 640
-  const h = 190
-  const max = 100
-  const safePoints = points.length ? points : [0, 0]
-  const step = safePoints.length > 1 ? w / (safePoints.length - 1) : w
-  const coords = safePoints.map((v, i) => [i * step, h - (v / max) * h])
-
-  const buildSmoothPath = (values) => {
-    if (!values.length) return ''
-    if (values.length === 1) return `M ${values[0][0]} ${values[0][1]}`
-
-    let d = `M ${values[0][0].toFixed(1)} ${values[0][1].toFixed(1)}`
-
-    for (let i = 1; i < values.length; i++) {
-      const prev = values[i - 1]
-      const curr = values[i]
-      const cx = (prev[0] + curr[0]) / 2
-      d += ` Q ${prev[0].toFixed(1)} ${prev[1].toFixed(1)} ${cx.toFixed(1)} ${(prev[1] + curr[1]) / 2}`
-      d += ` T ${curr[0].toFixed(1)} ${curr[1].toFixed(1)}`
-    }
-
-    return d
-  }
-
-  const linePath = buildSmoothPath(coords)
-  const areaPath = `${linePath} L ${w} ${h} L 0 ${h} Z`
+  const width = 640
+  const height = 190
+  const values = points.length ? points : [0, 0]
+  const step = values.length > 1 ? width / (values.length - 1) : width
+  const coords = values.map((value, index) => [index * step, height - (value / 100) * height])
+  const linePath = coords.reduce((path, point, index) => {
+    if (!index) return `M ${point[0].toFixed(1)} ${point[1].toFixed(1)}`
+    const previous = coords[index - 1]
+    const middleX = (previous[0] + point[0]) / 2
+    return `${path} Q ${previous[0].toFixed(1)} ${previous[1].toFixed(1)} ${middleX.toFixed(1)} ${(previous[1] + point[1]) / 2} T ${point[0].toFixed(1)} ${point[1].toFixed(1)}`
+  }, '')
+  const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="dash-trend-svg" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${width} ${height}`} className="dash-trend-svg" preserveAspectRatio="none">
       <defs>
         <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--content-accent)" stopOpacity="0.35" />
           <stop offset="100%" stopColor="var(--content-accent)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill="url(#trendFill)" style={{ transition: 'all 0.7s ease' }} />
-      <path
-        d={linePath}
-        fill="none"
-        stroke="var(--content-accent)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        style={{ transition: 'all 0.7s ease' }}
-      />
+      <path d={areaPath} fill="url(#trendFill)" />
+      <path d={linePath} fill="none" stroke="var(--content-accent)" strokeWidth="2.5" strokeLinecap="round" />
       {coords.map(([x, y], index) => (
-        <circle
-          key={`${x}-${y}-${index}`}
-          cx={x}
-          cy={y}
-          r={index === coords.length - 1 ? 4 : 2.5}
-          fill="var(--content-accent)"
-          stroke="#fff"
-          strokeWidth="2"
-          style={{ transition: 'all 0.7s ease' }}
-        />
+        <circle key={`${x}-${index}`} cx={x} cy={y} r={index === coords.length - 1 ? 4 : 2.5} fill="var(--content-accent)" stroke="var(--bg-card)" strokeWidth="2" />
       ))}
     </svg>
   )
@@ -103,6 +69,7 @@ function fmtPct(v) {
 }
 
 export default function Dashboard({ simulationEnabled = true, simulationState }) {
+  const [period, setPeriod] = useState('24h')
   const { data, loading, error } = usePolling(
     () => buscarDashboard(MAQUINA_ID).then(adaptDashboard),
     [MAQUINA_ID, simulationEnabled],
@@ -133,7 +100,7 @@ export default function Dashboard({ simulationEnabled = true, simulationState })
     periodSummary: mockPeriodSummary,
     updatedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
   }
-  const d = simulationEnabled ? (simulationState ?? data ?? simulatedData) : (data ?? simulatedData)
+  const d = simulationState ?? data ?? simulatedData
 
   // Sem indicador da SMART 4.0, mantém a tela em espera e não monta os gráficos.
   if (!simulationEnabled && !d) {
@@ -156,28 +123,28 @@ export default function Dashboard({ simulationEnabled = true, simulationState })
     { time: '20:00', oee: 82 },
     { time: '22:00', oee: 85 },
   ]
-  const trendPoints = trendSeries.map((point) => Number(point.oee ?? point.value ?? 0))
+  const visibleTrendSeries = trendSeries.slice(period === '7d' ? -168 : -24)
+  const trendPoints = visibleTrendSeries.map((point) => Number(point.oee ?? point.value ?? 0))
 
-  const updatedAt = simulationEnabled ? (simulationState?.updatedAt || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })) : 'Atualizado agora'
+  const updatedAt = simulationState?.updatedAt ?? data?.updatedAt ?? 'agora'
   const refreshKey = `${updatedAt}-${d?.oee ?? 0}-${d?.disponibilidade ?? 0}-${d?.performance ?? 0}-${d?.qualidade ?? 0}`
 
-  const makeTrend = (currentValue, previousValue, direction = 'up') => {
+  const makeTrend = (currentValue, previousValue) => {
     if (currentValue === undefined || currentValue === null) return null
     const reference = previousValue ?? currentValue
-    const delta = Math.abs(Number((currentValue - reference).toFixed(1)))
+    const delta = Number((currentValue - reference).toFixed(1))
     return {
-      direction,
-      value: `${delta.toFixed(1).replace('.', ',')}%`,
+      direction: delta >= 0 ? 'up' : 'down',
+      value: `${delta > 0 ? '+' : ''}${delta.toFixed(1).replace('.', ',')}%`,
     }
   }
 
-  const lastTrendValue = trendSeries.at(-1)?.oee ?? d?.oee ?? 0
-  const previousTrendValue = trendSeries.at(-2)?.oee ?? lastTrendValue
+  const previousTrendValue = visibleTrendSeries.at(-2)?.oee ?? visibleTrendSeries.at(-1)?.oee
 
-  const oeeTrend = makeTrend(d?.oee ?? 0, previousTrendValue, 'up')
-  const disponibilidadeTrend = makeTrend(d?.disponibilidade ?? 0, d?.disponibilidade ?? 0, 'up')
-  const performanceTrend = makeTrend(d?.performance ?? 0, d?.performance ?? 0, 'down')
-  const qualidadeTrend = makeTrend(d?.qualidade ?? 0, d?.qualidade ?? 0, 'up')
+  const oeeTrend = makeTrend(d?.oee ?? 0, previousTrendValue)
+  const disponibilidadeTrend = makeTrend(d?.disponibilidade ?? 0, 90)
+  const performanceTrend = makeTrend(d?.performance ?? 0, 85)
+  const qualidadeTrend = makeTrend(d?.qualidade ?? 0, 98)
 
   const statusProduzindo = `${Math.max(60, Math.round((d.resumo?.boas ?? 1100) / 9)).toLocaleString('pt-BR')} un/h`
   const statusCiclo = `${(d.resumo?.tempoCicloMedio ?? 12.5).toFixed(1).replace('.', ',')} seg`
@@ -187,16 +154,17 @@ export default function Dashboard({ simulationEnabled = true, simulationState })
   return (
     <div className="dashboard-page">
       <PageHeader
+        systemActive={simulationEnabled}
         breadcrumb="OPERAÇÃO / DASHBOARD OEE"
         eyebrow="MONITORAMENTO DE EFICIÊNCIA FABRIL"
-        title="Bom dia, equipe ↗"
+        title="Visão geral da operação"
         subtitle="Acompanhe a performance da Bancada Smart 4.0 em tempo quase real."
         right={
           <>
             <select className="select-control" defaultValue="bancada-1">
               <option value="bancada-1">Bancada Smart 01</option>
             </select>
-            <select className="select-control" defaultValue="24h">
+            <select className="select-control" value={period} onChange={(event) => setPeriod(event.target.value)}>
               <option value="24h">Últimas 24h</option>
               <option value="7d">Últimos 7 dias</option>
             </select>
@@ -276,7 +244,7 @@ export default function Dashboard({ simulationEnabled = true, simulationState })
 
         <Panel
           title="STATUS DA LINHA"
-          right={<span className="status-online-pill"><span className="dot dot-green" /> Em produção</span>}
+          right={<span className={`status-online-pill${simulationEnabled ? '' : ' status-paused'}`}><span className={`dot ${simulationEnabled ? 'dot-green' : 'dot-orange'}`} /> {simulationEnabled ? 'Em produção' : 'Simulação pausada'}</span>}
         >
           <div className="status-line-title">Agora</div>
           <div className="status-line-machine">
@@ -288,25 +256,27 @@ export default function Dashboard({ simulationEnabled = true, simulationState })
             </span>
             <div>
               <div className="status-line-machine-name">Bancada Smart 01</div>
-              <div className="status-line-machine-sub" key={`cycle-${refreshKey}`}>Último ciclo há {statusUltimoCiclo}</div>
+              <div className="status-line-machine-sub" key={`cycle-${refreshKey}`}>{simulationEnabled ? `Último ciclo há ${statusUltimoCiclo}` : 'Simulação pausada'}</div>
             </div>
           </div>
-          <div className="status-line-metric" key={`prod-${refreshKey}`}>
-            <span>Produção atual</span>
-            <b>{statusProduzindo}</b>
-          </div>
-          <div className="status-line-metric" key={`ciclo-${refreshKey}`}>
-            <span>Tempo de ciclo</span>
-            <b>{statusCiclo}</b>
-          </div>
-          <div className="status-line-metric" key={`eficiencia-${refreshKey}`}>
-            <span>Eficiência do turno</span>
-            <b className="accent">{fmtPct(eficienciaTurno)}</b>
+          <div className="status-line-metrics">
+            <div className="status-line-metric" key={`prod-${refreshKey}`}>
+              <span>Produção atual</span>
+              <b>{simulationEnabled ? statusProduzindo : 'Pausada'}</b>
+            </div>
+            <div className="status-line-metric" key={`ciclo-${refreshKey}`}>
+              <span>Tempo de ciclo</span>
+              <b>{simulationEnabled ? statusCiclo : '—'}</b>
+            </div>
+            <div className="status-line-metric" key={`eficiencia-${refreshKey}`}>
+              <span>Eficiência do turno</span>
+              <b className="accent">{fmtPct(eficienciaTurno)}</b>
+            </div>
           </div>
         </Panel>
       </div>
 
-      <p className="updated-note">Dados atualizados em tempo real pela simulação · {updatedAt}</p>
+      <p className="updated-note">{simulationEnabled ? 'Dados atualizados pela simulação' : 'Simulação pausada'} · {updatedAt}</p>
     </div>
   )
 }

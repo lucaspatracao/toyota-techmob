@@ -72,6 +72,42 @@
   background: var(--bg-card-hover);
 }
 
+.table-sort {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+}
+.table-sort:hover {
+  color: var(--text-primary);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+@media (max-width: 700px) {
+  .filters-row,
+  .filter-dates {
+    align-items: stretch;
+  }
+  .filter-dates {
+    flex-wrap: wrap;
+  }
+  .filter-field,
+  .filter-field select,
+  .date-input {
+    max-width: 100%;
+  }
+  .date-input input[type='date'] {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
 @media (max-width: 900px) {
   .clear-filters-btn {
     margin-left: 0;

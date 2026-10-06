@@ -1,14 +1,4 @@
-import { useState, useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AuthContext } from '../context/AuthContext'
 import '../styles/topbar.css'
-
-const IconBell = () => (
-  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-  </svg>
-)
 
 const IconSun = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -23,9 +13,15 @@ const IconMoon = () => (
   </svg>
 )
 
+const IconSmartMark = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
+    <path d="M3 7l9 5 9-5M12 12v10" />
+  </svg>
+)
+
 /**
- * Barra superior fixa: identidade do sistema, status de conexão MQTT,
- * notificações e avatar.
+ * Barra superior fixa: identidade, conexão MQTT e controles do sistema.
  */
 export default function Topbar({
   mqttConnected = true,
@@ -33,47 +29,17 @@ export default function Topbar({
   onToggleTheme,
   simulationEnabled = true,
   onToggleSimulation,
+  onToggleSidebar,
+  mobileOpen = false,
 }) {
-  const navigate = useNavigate()
-  const auth = useContext(AuthContext)
-  const user = auth?.user ?? {
-    name: 'Operador Demo',
-    email: 'operador@demo.local',
-    type: 'manager',
-  }
-  const logout = auth?.logout ?? (() => {})
-  const [notifOpen, setNotifOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-
-  const getUserInitials = () => {
-    if (!user?.name) return 'U'
-    return user.name
-      .split(' ')
-      .slice(0, 2)
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-  }
-
-  const handleLogout = () => {
-    logout()
-    navigate('/dashboard')
-  }
-
-  const getRoleDisplay = () => {
-    if (!user) return ''
-    const roleMap = {
-      'supervisor-a': 'Supervisor Turno A',
-      'supervisor-b': 'Supervisor Turno B',
-      'supervisor-c': 'Supervisor Turno C',
-      manager: 'Gerente Geral',
-    }
-    return roleMap[user.type] || 'Usuário'
-  }
-
   return (
     <header className="topbar">
       <div className="topbar-left">
+        {!mobileOpen && (
+          <button type="button" className="sidebar-mobile-toggle" aria-label="Abrir menu Smart 4.0" onClick={onToggleSidebar}>
+            <IconSmartMark />
+          </button>
+        )}
         <div className="topbar-brand">
           <span className="topbar-brand-mark">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -111,66 +77,7 @@ export default function Topbar({
           {theme === 'dark' ? <IconSun /> : <IconMoon />}
         </button>
 
-        <button
-          type="button"
-          className="topbar-icon-btn"
-          aria-label="Notificações"
-          onClick={() => setNotifOpen((v) => !v)}
-        >
-          <IconBell />
-          <span className="topbar-badge">3</span>
-        </button>
-
-        <div className="topbar-user" onClick={() => setUserMenuOpen((v) => !v)} style={{ cursor: 'pointer' }}>
-          <div className="topbar-avatar">{getUserInitials()}</div>
-          <div className="topbar-user-meta">
-            <span className="topbar-user-name">{user?.name || 'Usuário'}</span>
-            <span className="topbar-user-role">{getRoleDisplay()}</span>
-          </div>
-        </div>
-
-        {userMenuOpen && (
-          <div className="topbar-user-menu">
-            <div className="topbar-user-menu-item">{user?.email}</div>
-            <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '8px 0' }} />
-            <button
-              type="button"
-              className="topbar-user-menu-item"
-              onClick={handleLogout}
-              style={{ color: 'var(--accent-red)', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}
-            >
-              Sair
-            </button>
-          </div>
-        )}
       </div>
-
-      {notifOpen && (
-        <div className="topbar-notif-panel">
-          <div className="topbar-notif-header">Notificações</div>
-          <div className="topbar-notif-item">
-            <span className="dot dot-red" />
-            <div>
-              <b>Taxa de rejeição elevada</b>
-              <p>Estação 3 acima do limite (7,8%) — há 12 min</p>
-            </div>
-          </div>
-          <div className="topbar-notif-item">
-            <span className="dot dot-orange" />
-            <div>
-              <b>Manutenção programada</b>
-              <p>Bancada Smart 4.0 — amanhã às 06:00</p>
-            </div>
-          </div>
-          <div className="topbar-notif-item">
-            <span className="dot dot-green" />
-            <div>
-              <b>Meta diária atingida</b>
-              <p>OEE acima da meta de 75% — há 1h</p>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   )
 }
