@@ -120,16 +120,12 @@
   border-color: var(--text-tertiary);
 }
 .simulation-on {
-  color: #9a3412;
-  background: #fff7ed;
+  color: var(--accent-red);
+  background: var(--accent-red-bg);
 }
 .simulation-off {
   color: #166534;
   background: var(--accent-green-bg);
-}
-[data-theme='dark'] .simulation-on {
-  color: #E9AD7A;
-  background: rgba(233, 173, 122, 0.14);
 }
 [data-theme='dark'] .simulation-off {
   color: var(--accent-green);
