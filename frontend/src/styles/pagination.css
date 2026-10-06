@@ -27,6 +27,9 @@
   align-items: center;
   gap: 4px;
 }
+.page-number-group {
+  display: contents;
+}
 
 .page-btn {
   width: 28px;

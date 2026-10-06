@@ -60,6 +60,11 @@
   border-color: rgba(34, 197, 94, 0.25);
   background: var(--accent-green-bg);
 }
+.pill-paused {
+  color: var(--accent-orange);
+  border-color: rgba(217, 119, 6, 0.25);
+  background: var(--accent-orange-bg);
+}
 .pill-date {
   color: var(--text-secondary);
   font-family: var(--font-mono);

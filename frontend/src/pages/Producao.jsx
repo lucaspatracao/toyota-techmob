@@ -10,16 +10,32 @@ import { productionSeries, hourlyBars } from '../data/mockData.js'
 import '../styles/producao.css'
 
 const RANGES = ['1H', '6H', '12H', '24H', '7D', '30D']
+const RANGE_HOURS = { '1H': 1, '6H': 6, '12H': 12, '24H': 24, '7D': 168, '30D': 720 }
+
+function sumField(rows, field) {
+  return rows.reduce((sum, row) => sum + Number(row[field] ?? 0), 0)
+}
 
 export default function Producao({ simulationEnabled = true, simulationState }) {
   const [range, setRange] = useState('24H')
-  const data = simulationEnabled ? simulationState : null
+  const data = simulationState
+  const allChartData = data?.productionSeries ?? productionSeries
+  const chartData = allChartData.slice(-RANGE_HOURS[range])
+  const previousChartData = allChartData.slice(-RANGE_HOURS[range] * 2, -RANGE_HOURS[range])
+  const boasNoPeriodo = sumField(chartData, 'boas')
+  const rejeitadasNoPeriodo = sumField(chartData, 'rejeitadas')
+  const boasPeriodoAnterior = sumField(previousChartData, 'boas')
+  const rejeitadasPeriodoAnterior = sumField(previousChartData, 'rejeitadas')
+  const makeTrend = (current, previous, inverse = false) => {
+    const delta = previous ? ((current - previous) / previous) * 100 : 0
+    return { direction: (delta >= 0) !== inverse ? 'up' : 'down', value: `${Math.abs(delta).toFixed(1).replace('.', ',')}%`, label: 'vs. período anterior' }
+  }
 
   const summary = data ? {
-    total: data.resumo?.boas ?? 1248,
-    boas: data.resumo?.boas ?? 1186,
-    rejeitadas: data.resumo?.rejeitadas ?? 62,
-    taxa: ((data.resumo?.rejeitadas ?? 62) / Math.max((data.resumo?.boas ?? 1248) + (data.resumo?.rejeitadas ?? 62), 1) * 100),
+    total: boasNoPeriodo + rejeitadasNoPeriodo,
+    boas: boasNoPeriodo,
+    rejeitadas: rejeitadasNoPeriodo,
+    taxa: (rejeitadasNoPeriodo / Math.max(boasNoPeriodo + rejeitadasNoPeriodo, 1) * 100),
     ciclo: data.resumo?.tempoCicloMedio ?? 12.8,
     updatedAt: data.updatedAt ?? 'agora',
   } : {
@@ -31,12 +47,12 @@ export default function Producao({ simulationEnabled = true, simulationState }) 
     updatedAt: 'agora',
   }
 
-  const chartData = data?.productionSeries ?? productionSeries
   const hourlyData = data?.hourlyBars ?? hourlyBars
 
   return (
     <>
       <PageHeader
+        systemActive={simulationEnabled}
         title="Produção"
         subtitle="Acompanhe a produção da máquina ao longo do tempo."
         right={
@@ -51,10 +67,10 @@ export default function Producao({ simulationEnabled = true, simulationState }) 
       />
 
       <div className="kpi-row">
-        <StatCard icon="total" label="PRODUÇÃO TOTAL" value={summary.total.toLocaleString('pt-BR')} unit="peças" caption="Últimas 24 horas" trend={{ direction: 'up', value: '6,2%', label: 'vs ontem' }} />
-        <StatCard icon="good" label="PEÇAS BOAS" value={summary.boas.toLocaleString('pt-BR')} unit="peças" caption="Últimas 24 horas" trend={{ direction: 'up', value: '6,4%', label: 'vs ontem' }} />
-        <StatCard icon="rejected" label="PEÇAS REJEITADAS" value={String(summary.rejeitadas)} unit="peças" caption="Últimas 24 horas" trend={{ direction: 'down', value: '3,1%', label: 'vs ontem' }} />
-        <StatCard icon="rate" label="TAXA DE REJEIÇÃO" value={`${summary.taxa.toFixed(1).replace('.', ',')}%`} caption="Últimas 24 horas" trend={{ direction: 'down', value: '0,2 p.p.', label: 'vs ontem' }} />
+        <StatCard icon="total" label="PRODUÇÃO TOTAL" value={summary.total.toLocaleString('pt-BR')} unit="peças" caption={range} trend={makeTrend(summary.total, boasPeriodoAnterior + rejeitadasPeriodoAnterior)} />
+        <StatCard icon="good" label="PEÇAS BOAS" value={summary.boas.toLocaleString('pt-BR')} unit="peças" caption={range} trend={makeTrend(summary.boas, boasPeriodoAnterior)} />
+        <StatCard icon="rejected" label="PEÇAS REJEITADAS" value={String(summary.rejeitadas)} unit="peças" caption={range} trend={makeTrend(summary.rejeitadas, rejeitadasPeriodoAnterior, true)} />
+        <StatCard icon="rate" label="TAXA DE REJEIÇÃO" value={`${summary.taxa.toFixed(1).replace('.', ',')}%`} caption={range} trend={makeTrend(summary.taxa, previousChartData.length ? (rejeitadasPeriodoAnterior / Math.max(boasPeriodoAnterior + rejeitadasPeriodoAnterior, 1)) * 100 : 0, true)} />
       </div>
 
       <div className="grid-row" style={{ marginTop: 20, alignItems: 'stretch' }}>
@@ -74,29 +90,29 @@ export default function Producao({ simulationEnabled = true, simulationState }) 
           <div className="chart-legend">
             <span><i className="dot dot-green" /> Peças boas</span>
             <span><i className="dot dot-red" /> Peças rejeitadas</span>
-            <span><i className="dash-legend" /> Taxa de rejeição (%)</span>
+            <span><i className="dash-legend dash-legend-red" /> Taxa de rejeição (%)</span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: -10, bottom: 0 }}>
-              <CartesianGrid stroke="#E2E8F0" vertical={false} />
-              <XAxis dataKey="time" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis yAxisId="left" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} label={{ value: 'Peças', position: 'insideTopLeft', fill: '#64748B', fontSize: 11 }} />
-              <YAxis yAxisId="right" orientation="right" stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
-              <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 10px rgba(15,23,42,0.08)' }} />
-              <Bar yAxisId="left" dataKey="boas" stackId="a" fill="#22C55E" radius={[2, 2, 0, 0]} />
-              <Bar yAxisId="left" dataKey="rejeitadas" stackId="a" fill="#EF4444" radius={[0, 0, 0, 0]} />
-              <Line yAxisId="right" type="monotone" dataKey="taxa" stroke="#94A3B8" strokeDasharray="4 3" dot={{ r: 3, fill: '#94A3B8' }} />
+              <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+              <XAxis dataKey="time" stroke="var(--chart-axis)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" stroke="var(--chart-axis)" fontSize={11} tickLine={false} axisLine={false} label={{ value: 'Peças', position: 'insideTopLeft', fill: 'var(--chart-axis)', fontSize: 11 }} />
+              <YAxis yAxisId="right" orientation="right" stroke="var(--chart-axis)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+              <Tooltip contentStyle={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12, boxShadow: 'var(--shadow-md)' }} />
+              <Bar yAxisId="left" dataKey="boas" stackId="a" fill="var(--chart-good)" radius={[2, 2, 0, 0]} />
+              <Bar yAxisId="left" dataKey="rejeitadas" stackId="a" fill="var(--chart-rejected)" radius={[0, 0, 0, 0]} />
+              <Line yAxisId="right" type="monotone" dataKey="taxa" stroke="var(--chart-rejected)" strokeDasharray="4 3" dot={{ r: 3, fill: 'var(--chart-rejected)' }} />
             </ComposedChart>
           </ResponsiveContainer>
         </Panel>
 
         <Panel title="RESUMO (ÚLTIMAS 24 HORAS)" className="summary-panel">
           <div className="summary-donut-wrap">
-            <SummaryDonut good={summary.boas} rejected={summary.rejeitadas} />
+            <SummaryDonut good={summary.boas} rejected={summary.rejeitadas} size={190} stroke={18} />
             <ul className="summary-legend">
               <li><span className="dot dot-green" /> Peças boas <b>{summary.boas.toLocaleString('pt-BR')} ({((summary.boas / (summary.boas + summary.rejeitadas)) * 100).toFixed(1).replace('.', ',')}%)</b></li>
               <li><span className="dot dot-red" /> Peças rejeitadas <b>{summary.rejeitadas.toLocaleString('pt-BR')} ({summary.taxa.toFixed(1).replace('.', ',')}%)</b></li>
-              <li><span className="dot dot-orange" /> Taxa de rejeição <b>{summary.taxa.toFixed(1).replace('.', ',')}%</b></li>
+              <li><span className="dot dot-red" /> Taxa de rejeição <b>{summary.taxa.toFixed(1).replace('.', ',')}%</b></li>
             </ul>
           </div>
           <div className="summary-footer-row">
@@ -113,12 +129,12 @@ export default function Producao({ simulationEnabled = true, simulationState }) 
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={hourlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid stroke="#E2E8F0" vertical={false} />
-            <XAxis dataKey="hour" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} interval={0} />
-            <YAxis stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} />
-            <Tooltip contentStyle={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 10px rgba(15,23,42,0.08)' }} />
-            <Bar dataKey="boas" fill="#22C55E" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="rejeitadas" fill="#EF4444" radius={[2, 2, 0, 0]} />
+            <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+            <XAxis dataKey="hour" stroke="var(--chart-axis)" fontSize={10} tickLine={false} axisLine={false} interval={0} />
+            <YAxis stroke="var(--chart-axis)" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip contentStyle={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12, boxShadow: 'var(--shadow-md)' }} />
+            <Bar dataKey="boas" fill="var(--chart-good)" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="rejeitadas" fill="var(--chart-rejected)" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Panel>

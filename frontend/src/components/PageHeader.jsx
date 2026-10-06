@@ -16,7 +16,7 @@ function useClock() {
  * - `eyebrow`: rótulo pequeno acima do título (ex.: "MONITORAMENTO DE EFICIÊNCIA FABRIL").
  * - `title`/`subtitle`: mantidos por compatibilidade com as telas existentes.
  */
-export default function PageHeader({ breadcrumb, eyebrow, title, subtitle, right }) {
+export default function PageHeader({ breadcrumb, eyebrow, title, subtitle, right, systemActive = true }) {
   const timestamp = useClock()
   return (
     <header className="page-header">
@@ -27,8 +27,9 @@ export default function PageHeader({ breadcrumb, eyebrow, title, subtitle, right
         {subtitle && <p className="page-subtitle">{subtitle}</p>}
       </div>
       <div className="page-header-right">
-        <span className="pill pill-online">
-          <span className="dot dot-green" /> SISTEMA ONLINE
+        <span className={`pill ${systemActive ? 'pill-online' : 'pill-paused'}`}>
+          <span className={`dot ${systemActive ? 'dot-green' : 'dot-orange'}`} />
+          {systemActive ? 'SISTEMA ONLINE' : 'SISTEMA EM ESPERA'}
         </span>
         <span className="pill pill-date">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

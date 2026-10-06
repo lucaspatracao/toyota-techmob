@@ -25,37 +25,36 @@ export function generateSimulationState(step = 0) {
 
   const toPercent = (value) => Number(value.toFixed(1))
 
-  const oeeSeries = Array.from({ length: 12 }, (_, index) => {
+  const oeeSeries = Array.from({ length: 168 }, (_, index) => {
+    const date = new Date(Date.now() - (167 - index) * 60 * 60 * 1000)
     const valor = Number(clamp(oee + Math.sin((wave + index) * 1.1) * 5 + (Math.random() * 3 - 1.5), 68, 97).toFixed(1))
     return {
-      time: `${String((index * 2 + 2) % 24).padStart(2, '0')}:00`,
+      time: `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`,
       oee: valor,
     }
   })
 
-  const productionSeries = Array.from({ length: 12 }, (_, index) => {
-    const t = index + 1
-    const boasHora = Math.round(clamp(boas / 12 + Math.sin((wave + t) * 1.2) * 40 + Math.random() * 90, 40, 220))
-    const rejeitadasHora = Math.round(clamp(rejeitadas / 12 + Math.cos((wave + t) * 1.1) * 10 + Math.random() * 25, 2, 80))
+  const productionSeries = Array.from({ length: 720 }, (_, index) => {
+    const timestamp = Date.now() - (719 - index) * 60 * 60 * 1000
+    const date = new Date(timestamp)
+    const boasHora = Math.round(clamp(boas / 12 + Math.sin((wave + index) * 1.2) * 40 + Math.random() * 90, 40, 220))
+    const rejeitadasHora = Math.round(clamp(rejeitadas / 12 + Math.cos((wave + index) * 1.1) * 10 + Math.random() * 25, 2, 80))
     const taxa = toPercent((rejeitadasHora / (boasHora + rejeitadasHora)) * 100)
 
     return {
-      time: `${String((index * 2 + 2) % 24).padStart(2, '0')}:00`,
+      timestamp,
+      time: `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`,
       boas: boasHora,
       rejeitadas: rejeitadasHora,
       taxa,
     }
   })
 
-  const hourlyBars = Array.from({ length: 12 }, (_, index) => {
-    const boasHora = Math.round(clamp(boas / 12 + Math.sin((wave + index) * 1.8) * 35 + Math.random() * 100, 30, 220))
-    const rejeitadasHora = Math.round(clamp(rejeitadas / 12 + Math.cos((wave + index) * 2.1) * 12 + Math.random() * 22, 2, 60))
-    return {
-      hour: String((index + 1) * 2).padStart(2, '0'),
-      boas: boasHora,
-      rejeitadas: rejeitadasHora,
-    }
-  })
+  const hourlyBars = productionSeries.slice(-24).map((point) => ({
+    hour: point.time.slice(-5, -3),
+    boas: point.boas,
+    rejeitadas: point.rejeitadas,
+  }))
 
   const periodSummary = Array.from({ length: 6 }, (_, index) => {
     const boasPeriodo = Math.round(clamp(boas / 6 + Math.random() * 120 + index * 8, 180, 600))
@@ -74,23 +73,23 @@ export function generateSimulationState(step = 0) {
     }
   })
 
-  const historicoRows = Array.from({ length: 10 }, (_, index) => {
-    const boasPeriodo = Math.round(clamp(boas / 10 + Math.random() * 160 + index * 9, 180, 500))
-    const rejeitadasPeriodo = Math.round(clamp(rejeitadas / 10 + Math.random() * 20 + index * 1.5, 8, 60))
-    const taxa = Number(((rejeitadasPeriodo / (boasPeriodo + rejeitadasPeriodo)) * 100).toFixed(1))
-    const oeePeriodo = Number(clamp(oee + Math.random() * 7 - 3, 66, 96).toFixed(1))
+  const historicoRows = productionSeries.map((point) => {
+    const date = new Date(point.timestamp)
+    const taxa = point.taxa
+    const oeePeriodo = Number(clamp(oee + Math.sin(point.timestamp / 3600000) * 5, 66, 96).toFixed(1))
     const status = oeePeriodo < 72 ? 'red' : oeePeriodo < 78 ? 'orange' : 'green'
-    const date = new Date(Date.now() - (9 - index) * 60 * 60 * 1000)
+    const hour = date.getHours()
 
     return {
+      timestamp: point.timestamp,
       status,
       dataHora: `${date.toLocaleDateString('pt-BR')} ${String(date.getHours()).padStart(2, '0')}:00`,
-      periodo: `${String(date.getHours()).padStart(2, '0')}:00 - ${String((date.getHours() + 1) % 24).padStart(2, '0')}:00`,
-      turno: date.getHours() < 12 ? 'Manhã' : date.getHours() < 18 ? 'Tarde' : 'Noite',
-      boas: boasPeriodo,
-      rejeitadas: rejeitadasPeriodo,
+      periodo: `${String(hour).padStart(2, '0')}:00 - ${String((hour + 1) % 24).padStart(2, '0')}:00`,
+      turno: hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite',
+      boas: point.boas,
+      rejeitadas: point.rejeitadas,
       taxa: `${taxa.toFixed(1).replace('.', ',')}%`,
-      ciclo: `${(tempoCicloMedio + Math.random() * 1.5 - 0.5).toFixed(2).replace('.', ',')} s`,
+      ciclo: `${(tempoCicloMedio + Math.sin(point.timestamp / 60000) * 1.5).toFixed(2).replace('.', ',')} s`,
       oee: `${oeePeriodo.toFixed(1).replace('.', ',')}%`,
     }
   })

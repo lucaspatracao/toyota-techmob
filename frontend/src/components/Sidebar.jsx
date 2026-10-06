@@ -25,8 +25,9 @@ const IconHistorico = () => (
   </svg>
 )
 const IconMenu = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 6h16M4 12h16M4 18h16" />
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" />
+    <path d="M3 7l9 5 9-5M12 12v10" />
   </svg>
 )
 
@@ -36,7 +37,7 @@ const IconMenu = () => (
  *   pelo botão hambúrguer embutido na própria sidebar.
  * - `mobileOpen` / `onCloseMobile`: modo off-canvas em telas pequenas.
  */
-export default function Sidebar({ collapsed = false, mobileOpen = false, onCloseMobile, onToggleSidebar }) {
+export default function Sidebar({ collapsed = false, mobileOpen = false, simulationEnabled = true, onCloseMobile, onToggleSidebar }) {
   const location = useLocation()
 
   // Fecha o menu móvel automaticamente ao navegar entre telas
@@ -62,19 +63,10 @@ export default function Sidebar({ collapsed = false, mobileOpen = false, onClose
         title={collapsed ? 'SMART 4.0' : undefined}
       >
         <div className="sidebar-brand">
-          <span className="sidebar-brand-id">
-            <span className="sidebar-brand-mark">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#fff" strokeWidth="1.8" />
-                <path d="M3 7l9 5 9-5M12 12v10" stroke="#fff" strokeWidth="1.8" />
-              </svg>
-            </span>
-            <span className="sidebar-brand-text">SMART 4.0</span>
-          </span>
           <button
             type="button"
             className="sidebar-burger"
-            aria-label="Recolher/expandir menu"
+            aria-label="Recolher/expandir menu Smart 4.0"
             onClick={onToggleSidebar}
           >
             <IconMenu />
@@ -109,7 +101,8 @@ export default function Sidebar({ collapsed = false, mobileOpen = false, onClose
             <div className="sidebar-status-label">MÁQUINA</div>
             <div className="sidebar-status-value">SMART 4.0</div>
             <div className="sidebar-status-online">
-              <span className="dot dot-green" /> Operando
+              <span className={`dot ${simulationEnabled ? 'dot-green' : 'dot-orange'}`} />
+              {simulationEnabled ? 'Operando' : 'Pausada'}
             </div>
           </div>
         </div>
