@@ -3,15 +3,22 @@
  * back-end) para o shape que os componentes de tela já esperam (o mesmo
  * shape usado em `src/data/mockData.js`).
  *
- * ⚠️ TODOS os nomes de campo abaixo (ex.: `d.oee`, `d.disponibilidade`)
- * são PALPITES baseados no Documento do Projeto e nas telas de
- * referência — ainda não confirmados com o código real dos DTOs
- * (DashboardResponseDTO, MaquinaDTO, HistoricoProducaoDTO,
- * IndicadorOEEDTO). Assim que você me passar esses 4 arquivos, eu
- * atualizo só este arquivo — nenhum componente de tela precisa mudar.
+ * JSON que a API envia hoje (DTOs em backend/.../dto):
+ *   GET /api/dashboard/{id}
+ *     { maquina: { id, bancadaId, nome, statusAtual },
+ *       indicadorAtual: { maquinaId, disponibilidade, performance, qualidade, oee, calculadoEm } | null }
+ *   GET /api/indicadores/historico/{id}
+ *     [{ maquinaId, disponibilidade, performance, qualidade, oee, calculadoEm }]
+ *   GET /api/historico-producao/{id}
+ *     [{ maquinaId, timestamp, statusOperacional, pecasBoas, pecasDefeituosas, tempoCicloSegundos }]
+ *   GET /api/maquinas
+ *     [{ id, bancadaId, nome, statusAtual }]
  *
- * Cada função tem um comentário "// confirmar:" apontando o campo que
- * precisa ser validado.
+ * Pendente: só adaptDashboard está ligado à API, e só os 4 indicadores
+ * de indicadorAtual existem de fato. Série, resumo e as funções de
+ * histórico/máquinas ainda esperam campos que a API não envia
+ * (tendenciaOee, resumo24h, pecasRejeitadas, dataHora, status...) e
+ * precisam ser ajustadas antes de trocar os mocks pela API.
  */
 
 // ---------- Dashboard ----------
