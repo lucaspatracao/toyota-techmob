@@ -10,12 +10,19 @@ Este diretório contém a API REST em Java com Spring Boot responsável por expo
 
 ## Variáveis de ambiente
 
-As credenciais e a URL do banco devem ser configuradas via ambiente, não no arquivo de configuração do projeto.
+As credenciais do banco vêm do ambiente, nunca do repositório. Só `DB_PASSWORD` é obrigatória; as demais têm valor padrão.
+
+| Variável | Padrão |
+|---|---|
+| `DB_HOST` | `localhost` |
+| `DB_PORT` | `3306` |
+| `DB_NAME` | `techmob` |
+| `DB_USER` | `root` |
+| `DB_PASSWORD` | *(obrigatória)* |
+| `SHOW_SQL` | `false` (use `true` para ver o SQL no console) |
 
 ```powershell
-$env:DB_USERNAME = "root"
-$env:DB_PASSWORD = "123456"
-$env:DB_URL = "jdbc:mysql://localhost:3306/techmob?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8"
+$env:DB_PASSWORD = "sua-senha"
 ```
 
 ## Execução local
@@ -23,15 +30,36 @@ $env:DB_URL = "jdbc:mysql://localhost:3306/techmob?useSSL=false&allowPublicKeyRe
 ### Opção 1: comando direto
 
 ```powershell
-cd "c:\Users\49615129828\toyota-techmob\backend"
+cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-### Opção 2: atalho do projeto
+### Opção 2: atalho do projeto (pede a senha se `DB_PASSWORD` não estiver definida)
 
 ```powershell
-cd "c:\Users\49615129828\toyota-techmob\backend"
+cd backend
 .\run-local.cmd
+```
+
+## Testes
+
+```powershell
+.\mvnw.cmd test
+```
+
+Não precisam de MySQL. Os testes de service usam mocks, e o `ApiContratoIntegrationTest` sobe a API com um banco H2 em memória e confere o JSON de cada endpoint.
+
+## Estrutura
+
+```
+controller/  recebe as requisições HTTP
+service/     regras de negócio
+repository/  acesso ao banco (Spring Data JPA)
+domain/      entidades JPA (espelham as tabelas)
+dto/         respostas da API (records)
+mapper/      conversão entidade → DTO
+exception/   tratamento global de erros
+config/      CORS
 ```
 
 ## Endpoints principais
