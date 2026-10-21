@@ -1,6 +1,5 @@
 import { useState, useEffect, cloneElement } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
-import AuthProvider from './context/AuthContext'
 import Sidebar from './components/Sidebar.jsx'
 import Topbar from './components/Topbar.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -110,10 +109,8 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppRoutes />
-      </HashRouter>
-    </AuthProvider>
+    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AppRoutes />
+    </HashRouter>
   )
 }
