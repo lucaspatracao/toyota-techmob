@@ -6,7 +6,8 @@ module.exports = {
     adminAuth: null,
     https: false,
     flowFile: 'flows.json',
-    credentialSecret: 'my-secret-key',
+    // Em produção, defina NODE_RED_CREDENTIAL_SECRET no ambiente.
+    credentialSecret: process.env.NODE_RED_CREDENTIAL_SECRET || 'techmob-dev-secret',
     flowFilePretty: true,
     userDir: './node-red',
     nodesDir: './node-red/nodes',
