@@ -28,22 +28,27 @@ Fluxo geral: **Bancada Smart 4.0 → MQTT → Node-RED → CSV / MySQL → API R
 - `frontend/`: aplicação React
 - `infra/`: schema MySQL e seed inicial
 - `data/`: dados e scripts auxiliares
-- `node/`: flow do Node-RED
+- `node-red/`: flow do Node-RED (captura MQTT da Smart)
 
 ```
 toyota-techmob/
 │
 ├── backend/            # Spring Boot (pacote com.toyota.techmob.backend)
 │   ├── src/main/java/com/toyota/techmob/backend/
-│   │   ├── domain/         # Entidades JPA: Maquina, IndicadorOEE, HistoricoProducao
-│   │   ├── repository/     # Repositórios Spring Data JPA
 │   │   ├── controller/     # Endpoints REST
-│   │   └── exception/      # GlobalExceptionHandler, MaquinaNotFoundException
+│   │   ├── service/        # Regras de negócio
+│   │   ├── repository/     # Repositórios Spring Data JPA
+│   │   ├── domain/         # Entidades JPA: Maquina, IndicadorOEE, HistoricoProducao
+│   │   ├── dto/            # Respostas da API
+│   │   ├── exception/      # GlobalExceptionHandler, MaquinaNotFoundException
+│   │   └── config/         # CORS
 │   └── src/main/resources/
 │       └── application.properties
 │
 ├── data/               # Python para cálculo de OEE a partir dos CSVs
-│   ├── oee_calculator.py
+│   ├── oee_calculator.py         # lê o CSV do Node-RED e grava o OEE no MySQL
+│   ├── simulador_oee.py          # gera dados simulados da bancada
+│   ├── dados_producao_exemplo.csv
 │   └── requirements.txt
 │
 ├── frontend/           # React + Vite
@@ -56,10 +61,12 @@ toyota-techmob/
 ├── infra/
 │   └── schema.sql          # schema do MySQL local
 │
-├── node/
-│   ├── flow-captura-bancada.json
-│   └── README.md
+├── node-red/
+│   ├── flows.json      # flow: MQTT (techmob/smart/+/producao) → valida → CSV
+│   ├── settings.js
+│   └── package.json    # instale com: npm install --prefix node-red
 │
+├── start-node-red.cmd  # sobe o Node-RED em http://localhost:1880
 └── README.md
 ```
 

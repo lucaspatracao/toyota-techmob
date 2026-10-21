@@ -1,6 +1,6 @@
 // Dados fictícios para desenvolvimento visual.
 // Em produção, estes dados virão da API REST (Spring Boot) que lê do
-// PostgreSQL, conforme a arquitetura definida no Documento do Projeto.
+// MySQL, conforme a arquitetura definida no Documento do Projeto.
 
 export const oeeSeries = [
   { time: '14:00', oee: 62 }, { time: '15:00', oee: 65 }, { time: '16:00', oee: 68 },

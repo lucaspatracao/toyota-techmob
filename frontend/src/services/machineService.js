@@ -9,13 +9,9 @@ import { api } from './api.js'
  *   HistoricoProducaoController→ GET /api/historico-producao/{maquinaId}
  *   IndicadorOEEController     → GET /api/indicadores/historico/{maquinaId}
  *
- * ⚠️ PENDENTE DE CONFIRMAÇÃO: os nomes de campo dentro de cada DTO
- * (DashboardResponseDTO, MaquinaDTO, HistoricoProducaoDTO, IndicadorOEEDTO)
- * ainda não foram lidos do repositório. As funções abaixo retornam o JSON
- * exatamente como a API envia — quem faz o "de-para" para o shape que os
- * componentes React esperam são os adapters em `src/services/adapters.js`.
- * Assim que os DTOs forem confirmados, só os adapters precisam mudar —
- * os componentes de tela não são afetados.
+ * As funções retornam o JSON exatamente como a API envia. O "de-para"
+ * para o formato das telas fica em `src/services/adapters.js` (lá está
+ * documentado o JSON de cada endpoint).
  */
 
 /** GET /api/maquinas — lista de máquinas cadastradas. */
