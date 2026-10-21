@@ -87,16 +87,18 @@ Importe o conteúdo de `infra/schema.sql` no MySQL Workbench ou via cliente MySQ
 A senha do banco não fica hardcoded no projeto. Para rodar localmente, defina as variáveis de ambiente antes de iniciar a aplicação:
 
 ```powershell
-$env:DB_PASSWORD = "sua-senha"   # DB_HOST, DB_PORT, DB_NAME e DB_USER têm padrão
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "123456"
+$env:DB_URL = "jdbc:mysql://localhost:3306/techmob?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8"
 
-cd backend
+cd "c:\Users\49615129828\toyota-techmob\backend"
 .\mvnw.cmd spring-boot:run
 ```
 
-Também há um atalho para uso rápido no Windows (pede a senha se ela não estiver definida):
+Também há um atalho para uso rápido no Windows:
 
 ```powershell
-cd backend
+cd "c:\Users\49615129828\toyota-techmob\backend"
 .\run-local.cmd
 ```
 
