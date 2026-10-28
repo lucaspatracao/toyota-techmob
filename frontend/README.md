@@ -1,111 +1,99 @@
 # SMART 4.0 — Frontend (TechMob 4.0)
 
-Interface web (Vite + React) para o dashboard de monitoramento de eficiência
-fabril (OEE) do projeto TechMob 4.0 — Fundação Toyota do Brasil / SENAI-SP.
+Dashboard web (Vite + React) de monitoramento de eficiência fabril (OEE) da Bancada Smart 4.0, do projeto TechMob 4.0 (Fundação Toyota do Brasil / SENAI-SP).
 
-Reproduz fielmente as 3 telas de referência: **Dashboard**, **Produção** e
-**Histórico**.
+Três telas: **Dashboard**, **Produção** e **Histórico**.
 
 ## Como rodar
 
-```bash
+```powershell
+cd frontend
 npm install
-cp .env.example .env   # ajuste VITE_API_URL para onde o back-end estiver rodando
+copy .env.example .env   # ajuste VITE_API_URL se a API não estiver em localhost:8080
 npm run dev
 ```
 
-Abra `http://localhost:5173`. Build de produção: `npm run build` (gera a
-pasta `dist/`).
+Abra http://localhost:5173.
 
-## Status da integração com a API (Spring Boot)
+| Variável (`.env`) | Padrão | Para quê |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8080` | Endereço da API Spring Boot |
+| `VITE_MAQUINA_ID` | `1` | Máquina consultada (hoje só existe a Bancada Smart 4.0) |
 
-Os 4 endpoints abaixo foram **confirmados lendo o código real dos
-controllers** no repositório (`backend/src/main/java/.../controller/`):
+### Build de produção
 
+```powershell
+npm run build     # gera dist/
+npm run preview   # serve o build em http://localhost:4173
 ```
-GET /api/maquinas                          → List<MaquinaDTO>
-GET /api/dashboard/{maquinaId}              → DashboardResponseDTO
-GET /api/historico-producao/{maquinaId}     → List<HistoricoProducaoDTO>
-GET /api/indicadores/historico/{maquinaId}  → List<IndicadorOEEDTO>
-```
 
-A tela **Dashboard já está plugada de verdade** na API (`src/pages/Dashboard.jsx`):
-faz a chamada via `usePolling` (atualiza a cada 5s), mostra loading/erro, e
-só cai para os dados de exemplo (`mockData.js`) se a API não responder —
-isso evita tela em branco durante o desenvolvimento, mas pode ser removido
-depois que a API estiver 100% estável em produção.
+A pasta `dist/` é gerada a cada build e **não é versionada**. O build separa as bibliotecas em arquivos próprios (`react-*.js`, `charts-*.js`), que o navegador mantém em cache entre deploys. Assim, uma mudança no código da aplicação só faz baixar de novo o arquivo `index-*.js`, de cerca de 90 kB.
 
-**Produção e Histórico ainda usam mock puro** — falta plugar
-`buscarHistoricoProducao` e `buscarHistoricoIndicadoresOEE`
-(`src/services/machineService.js`) seguindo o mesmo padrão do Dashboard.
+## Modo simulação
 
-⚠️ **Pendente:** os nomes de campo dentro de cada DTO
-(`DashboardResponseDTO`, `MaquinaDTO`, `HistoricoProducaoDTO`,
-`IndicadorOEEDTO`) ainda não foram confirmados no código — só os nomes dos
-4 endpoints e o formato geral (record/DTO, não entidade JPA crua). Os
-"de-para" ficam isolados em `src/services/adapters.js`, com comentários
-`// confirmar:` nos campos que são palpite. Assim que alguém colar o
-conteúdo desses 4 arquivos de DTO, só esse arquivo precisa ser ajustado —
-nenhum componente de tela muda.
+O botão **"Desligar/Ativar simulação"** na barra superior controla um gerador de dados fictícios (`src/data/simulation.js`), que atualiza as telas a cada 4 segundos. Serve para apresentar o dashboard sem a bancada ligada.
+
+## Integração com a API
+
+A camada de acesso fica em `src/services/`:
+
+| Arquivo | Papel |
+|---|---|
+| `api.js` | Instância do Axios (`baseURL` vem de `VITE_API_URL`, timeout de 10s) |
+| `machineService.js` | Uma função por endpoint da API |
+| `adapters.js` | "De-para" do JSON da API para o formato das telas (o JSON de cada endpoint está documentado no topo do arquivo) |
+
+O contrato completo da API, com exemplos de resposta, está em [`backend/README.md`](../backend/README.md).
+
+### Situação atual
+
+| Tela | Fonte dos dados |
+|---|---|
+| Dashboard | Chama `GET /api/dashboard/{id}` a cada 5s (`usePolling`), **mas exibe os dados da simulação** (ver pendências) |
+| Produção | Simulação / `mockData.js` |
+| Histórico | Simulação / `mockData.js` |
+
+### Pendências
+
+1. **O Dashboard mostra sempre a simulação.** Em `Dashboard.jsx` a ordem é `simulationState ?? data`, e o `App` sempre entrega um estado de simulação, mesmo com ela desligada. Para exibir a API, a simulação desligada precisa enviar `simulationState = null`.
+2. **Os adapters esperam campos que a API não envia.** Só os 4 indicadores de `indicadorAtual` (oee, disponibilidade, performance, qualidade) batem. A série de OEE, o resumo de 24h e as funções de histórico e máquinas precisam ser ajustados ao JSON real.
+3. **Produção e Histórico** ainda não chamam a API. As funções `buscarHistoricoProducao` e `buscarHistoricoIndicadoresOEE` já existem em `machineService.js` e podem seguir o padrão do Dashboard.
 
 ## Estrutura de pastas
 
 ```
-techmob-frontend/
-├─ index.html
-├─ package.json
-├─ vite.config.js
+frontend/
+├─ index.html                 # página base (favicon: /logo-smart.svg)
+├─ vite.config.js             # porta 5173 + divisão do bundle
+├─ public/
+│  └─ logo-smart.svg
 └─ src/
-   ├─ main.jsx                 # bootstrap do React
-   ├─ App.jsx                  # layout raiz + rotas (react-router)
+   ├─ main.jsx                # bootstrap do React
+   ├─ App.jsx                 # layout (sidebar + topbar), rotas, tema claro/escuro e simulação
    ├─ components/
-   │  ├─ Sidebar.jsx           # menu lateral (logo, nav, status da máquina)
-   │  ├─ PageHeader.jsx        # cabeçalho de cada página (título + status online + data/hora)
-   │  ├─ Panel.jsx             # card/painel genérico (usado por todos os gráficos e tabelas)
-   │  ├─ StatCard.jsx          # card de indicador numérico (Produção/Histórico)
-   │  ├─ ArcGauge.jsx          # anel de progresso (card OEE do Dashboard)
-   │  ├─ ProgressBar.jsx       # barra linear (Disponibilidade/Performance/Qualidade)
-   │  ├─ SummaryDonut.jsx      # donut peças boas x rejeitadas (Resumo 24h)
-   │  └─ Pagination.jsx        # paginação da tabela de Histórico
+   │  ├─ Sidebar.jsx          # menu lateral (logo, navegação, status da máquina)
+   │  ├─ Topbar.jsx           # barra superior (tema, simulação, status MQTT)
+   │  ├─ PageHeader.jsx       # cabeçalho de cada página (título, status, relógio)
+   │  ├─ Panel.jsx            # card genérico usado por gráficos e tabelas
+   │  ├─ StatCard.jsx         # card de indicador numérico
+   │  ├─ SummaryDonut.jsx     # donut de peças boas x rejeitadas
+   │  ├─ StateFeedback.jsx    # estados de carregando / erro / vazio
+   │  └─ Pagination.jsx       # paginação da tabela de Histórico
    ├─ pages/
-   │  ├─ Dashboard.jsx         # tela "Dashboard" — já integrada à API real (com fallback)
-   │  ├─ Producao.jsx          # tela "Produção" — ainda em mock
-   │  └─ Historico.jsx         # tela "Histórico" — ainda em mock
-   ├─ services/
-   │  ├─ api.js                # instância axios (baseURL via VITE_API_URL)
-   │  ├─ machineService.js     # funções que chamam os 4 endpoints confirmados
-   │  └─ adapters.js           # "de-para" DTO da API → shape usado nos componentes
+   │  ├─ Dashboard.jsx
+   │  ├─ Producao.jsx
+   │  └─ Historico.jsx
+   ├─ services/               # api.js, machineService.js, adapters.js
    ├─ hooks/
-   │  └─ usePolling.js         # polling genérico (5s) com loading/error
+   │  └─ usePolling.js        # chama uma função a cada N ms, com loading/erro
    ├─ data/
-   │  └─ mockData.js           # dados fictícios (fallback enquanto a API não responde)
-   └─ styles/
-      ├─ global.css            # tokens de cor/tipografia + reset
-      ├─ layout.css, sidebar.css, pageheader.css, panel.css,
-      │  statcard.css, progressbar.css, pagination.css,
-      │  dashboard.css, producao.css, historico.css
+   │  ├─ mockData.js          # dados fictícios fixos
+   │  └─ simulation.js        # gerador do modo simulação
+   └─ styles/                 # um CSS por componente/página + global.css (tokens de cor)
 ```
 
-## Integração com o back-end (Spring Boot)
+## Decisões de interface
 
-Os componentes hoje consomem `src/data/mockData.js`. Para plugar na API REST
-descrita no Documento do Projeto (`GET /api/dashboard/{maquinaId}`,
-`GET /api/indicadores/historico/{maquinaId}`, etc.), basta:
-
-1. Criar um client HTTP (ex.: `src/services/api.js` com `axios` ou `fetch`).
-2. Substituir os arrays importados de `mockData.js` por `useEffect` + `useState`
-   que chamam o client e populam os componentes (`StatCard`, `ArcGauge`,
-   gráficos `recharts`, tabelas).
-3. Repetir a cada 5s (`setInterval`) para simular a atualização "tempo
-   (quase) real" mencionada no documento (dados via MQTT → Node-RED → CSV/SGBD → API).
-
-## Suposições assumidas (não estavam 100% claras nas imagens)
-
-- **Ícone da bancada** na sidebar foi recriado em SVG estilizado (o asset
-  original não estava disponível isolado nas capturas).
-- **Relógio do cabeçalho** (`PageHeader`) foi implementado dinâmico
-  (hora atual do navegador) em vez de fixo, para refletir "tempo real".
-- Botões de **paginação** (Histórico) e **seletor de intervalo** (Produção)
-  são funcionais sobre os dados mock, prontos para receber dados reais da API.
-- O tooltip "ⓘ" ao lado de "Produção ao longo do tempo" foi mantido como
-  texto estático (sem popover), já que seu conteúdo não aparece na referência.
+- O ícone da bancada na sidebar foi recriado em SVG, porque o original não estava disponível isolado.
+- O relógio do cabeçalho mostra a hora atual do navegador, para reforçar o "tempo real".
+- A paginação (Histórico) e o seletor de intervalo (Produção) já funcionam sobre os dados de exemplo.
