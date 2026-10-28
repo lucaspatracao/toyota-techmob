@@ -16,6 +16,12 @@ from typing import Dict, Optional
 
 import pandas as pd
 
+# O console do Windows (cp1252) não tem emojis: troca por "?" em vez de
+# quebrar com UnicodeEncodeError ao imprimir o relatório.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(errors="replace")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -316,151 +322,6 @@ def main():
     resultado_df = pd.DataFrame([indicadores])
     resultado_df.to_csv('resultado_oee.csv', index=False)
     logger.info('Resultados salvos em: resultado_oee.csv')
-
-
-if __name__ == "__main__":
-    main()
-
-        'tempo_operacional': round(tempo_operacional, 2)
-    }
-
-
-def gerar_relatorio(indicadores: Dict, estatisticas: Dict) -> str:
-<<<<<<< Updated upstream:data-science/simulador_oee.py
-    """Gera relatório formatado"""
-=======
-    """Gera relatório formatado."""
->>>>>>> Stashed changes:data/simulador_oee.py
-    relatorio = f"""
-{'='*70}
-RELATÓRIO OEE - TECHMOB 4.0
-{'='*70}
-
-📊 INDICADORES OEE:
-├── Disponibilidade: {indicadores.get('disponibilidade', 0):.1f}%
-├── Performance: {indicadores.get('performance', 0):.1f}%
-├── Qualidade: {indicadores.get('qualidade', 0):.1f}%
-└── OEE GERAL: {indicadores.get('oee', 0):.1f}%
-    Classificação: {indicadores.get('classificacao', 'N/A')}
-
-📈 ESTATÍSTICAS DE PRODUÇÃO:
-├── Total de Ciclos: {estatisticas.get('total_ciclos', 0)}
-├── Tempo Total (h): {estatisticas.get('tempo_total_horas', 0):.2f}
-├── Peças Produzidas: {indicadores.get('total_pecas', 0)}
-│   ├── Boas: {indicadores.get('total_boas', 0)}
-│   └── Defeituosas: {indicadores.get('total_defeitos', 0)}
-└── Taxa de Defeito: {indicadores.get('total_defeitos', 0) / max(1, indicadores.get('total_pecas', 1)) * 100:.1f}%
-
-{'='*70}
-"""
-    return relatorio
-
-
-def main():
-<<<<<<< Updated upstream:data-science/simulador_oee.py
-    """Função principal"""
-    parser = argparse.ArgumentParser(description='Cálculo do OEE - TechMob 4.0')
-    entrada = parser.add_mutually_exclusive_group(required=True)
-    entrada.add_argument('--csv', help='Caminho do CSV de produção')
-    entrada.add_argument('--simular', action='store_true', help='Executar simulação')
-    parser.add_argument('--horas', type=float, default=8, help='Duração da simulação em horas')
-    parser.add_argument('--seed', type=int, help='Semente opcional para reproduzir a simulação')
-    parser.add_argument('--saida', help='Arquivo CSV para salvar os dados simulados')
-    parser.add_argument('--relatorio', action='store_true', help='Gerar relatório detalhado')
-    
-    args = parser.parse_args()
-
-    if args.seed is not None:
-        random.seed(args.seed)
-    
-    config = ConfiguracaoOEE()
-    
-    # Carrega ou gera dados
-    if args.simular:
-        simulador = SimuladorBancadaSmart(config)
-        df = simulador.gerar_lote(args.horas, arquivo_saida=args.saida)
-    elif args.csv:
-        if not os.path.exists(args.csv):
-            logger.error(f"Arquivo não encontrado: {args.csv}")
-            sys.exit(1)
-        df = pd.read_csv(args.csv)
-        df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
-        logger.info(f"Carregados {len(df)} registros do arquivo")
-
-    # Calcula indicadores
-    indicadores = calcular_oee(df, config)
-    
-    # Estatísticas
-    estatisticas = {
-        'total_ciclos': len(df),
-        'tempo_total_horas': (df['timestamp'].max() - df['timestamp'].min()).total_seconds() / 3600
-    }
-    
-    # Exibe resultados
-    logger.info("\n📊 RESULTADOS:")
-    for key, value in indicadores.items():
-        if key != 'classificacao':
-            logger.info(f"{key}: {value}")
-    logger.info(f"Classificação: {indicadores.get('classificacao', 'N/A')}")
-    
-    if args.relatorio:
-        print(gerar_relatorio(indicadores, estatisticas))
-    
-    # Salva resultado
-    resultado_df = pd.DataFrame([indicadores])
-    resultado_df.to_csv('resultado_oee.csv', index=False)
-    logger.info("Resultados salvos em: resultado_oee.csv")
-=======
-    """Função principal."""
-    parser = argparse.ArgumentParser(description='Cálculo do OEE - TechMob 4.0')
-    entrada = parser.add_mutually_exclusive_group(required=True)
-    entrada.add_argument('--csv', help='Caminho do CSV de produção')
-    entrada.add_argument('--simular', action='store_true', help='Executar simulação')
-    parser.add_argument('--horas', type=float, default=8, help='Duração da simulação em horas')
-    parser.add_argument('--seed', type=int, help='Semente opcional para reproduzir a simulação')
-    parser.add_argument('--saida', help='Arquivo CSV para salvar os dados simulados')
-    parser.add_argument('--relatorio', action='store_true', help='Gerar relatório detalhado')
-
-    args = parser.parse_args()
-
-    if args.seed is not None:
-        random.seed(args.seed)
-
-    config = ConfiguracaoOEE()
-
-    if args.simular:
-        simulador = SimuladorBancadaSmart(config)
-        df = simulador.gerar_lote(args.horas, arquivo_saida=args.saida)
-    elif args.csv:
-        if not os.path.exists(args.csv):
-            logger.error('Arquivo não encontrado: %s', args.csv)
-            sys.exit(1)
-        df = pd.read_csv(args.csv)
-        df['timestamp'] = pd.to_datetime(df['timestamp'], utc=True)
-        logger.info(f'Carregados {len(df)} registros do arquivo')
-    else:
-        logger.error('Use --simular ou --csv para fornecer dados')
-        sys.exit(1)
-
-    indicadores = calcular_oee(df, config)
-    estatisticas = {
-        'total_ciclos': len(df),
-        'tempo_total_horas': (df['timestamp'].max() - df['timestamp'].min()).total_seconds() / 3600,
-    }
-
-    logger.info('\n📊 RESULTADOS:')
-    for key, value in indicadores.items():
-        if key != 'classificacao':
-            logger.info(f'{key}: {value}')
-    logger.info(f"Classificação: {indicadores.get('classificacao', 'N/A')}")
-
-    if args.relatorio:
-        print(gerar_relatorio(indicadores, estatisticas))
-
-    resultado_df = pd.DataFrame([indicadores])
-    resultado_df.to_csv('resultado_oee.csv', index=False)
-    logger.info('Resultados salvos em: resultado_oee.csv')
->>>>>>> Stashed changes:data/simulador_oee.py
 
 
 if __name__ == "__main__":
