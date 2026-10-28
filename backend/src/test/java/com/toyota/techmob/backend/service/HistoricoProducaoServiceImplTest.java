@@ -23,8 +23,8 @@ import com.toyota.techmob.backend.repository.MaquinaRepository;
 /**
  * Testes unitários do HistoricoProducaoServiceImpl.
  *
- * Repositórios são mockados (Mockito) — nenhum destes testes toca o banco
- * de verdade nem depende do Supabase estar acessível.
+ * Repositórios são mockados (Mockito): nenhum teste toca o banco
+ * de verdade.
  *
  * Rodar com: ./mvnw test
  */
@@ -74,9 +74,9 @@ class HistoricoProducaoServiceImplTest {
         List<HistoricoProducaoDTO> resultado = historicoProducaoService.historico(1L);
 
         assertThat(resultado).hasSize(2);
-        assertThat(resultado.get(0).getMaquinaId()).isEqualTo(1L);
-        assertThat(resultado.get(0).getPecasBoas()).isEqualTo(128);
-        assertThat(resultado.get(0).getTempoCicloSegundos()).isEqualByComparingTo(BigDecimal.valueOf(12.5));
+        assertThat(resultado.get(0).maquinaId()).isEqualTo(1L);
+        assertThat(resultado.get(0).pecasBoas()).isEqualTo(128);
+        assertThat(resultado.get(0).tempoCicloSegundos()).isEqualByComparingTo(BigDecimal.valueOf(12.5));
     }
 
     @Test
