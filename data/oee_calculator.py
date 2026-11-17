@@ -12,12 +12,14 @@ Fluxo:
      com `time.sleep` para processar novos CSVs automaticamente.
 
 Uso:
+    python oee_calculator.py --csv dados_producao.csv --cronometragem
     python oee_calculator.py --csv dados_producao.csv --maquina-id 1 --gravar-banco
     python oee_calculator.py --watch-dir ./dados --maquina-id 1 --gravar-banco --intervalo 30
 """
 
 import argparse
 import logging
+import math
 import os
 import time
 from dataclasses import dataclass
@@ -29,6 +31,8 @@ import pandas as pd
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("oee_calculator")
+
+STATUS_PRODUCAO = "EM_PRODUCAO"
 
 
 @dataclass
@@ -56,20 +60,29 @@ def obter_url_mysql() -> str:
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{dbname}?charset=utf8mb4"
 
 
-def ler_csv_producao(caminho_csv: str) -> pd.DataFrame:
-    """Lê o CSV de produção gerado pelo Node-RED e valida as colunas."""
-    if not os.path.exists(caminho_csv):
-        raise FileNotFoundError(f"CSV não encontrado: {caminho_csv}")
+def ler_csv_producao(caminho_csv: str | Path) -> pd.DataFrame:
+    """Lê o CSV de produção com cabeçalho ou no formato do Node-RED."""
+    try:
+        colunas = pd.read_csv(caminho_csv, nrows=0).columns
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame(columns=COLUNAS_ESPERADAS).astype({"timestamp": "datetime64[ns, UTC]"})
+    except FileNotFoundError as erro:
+        raise FileNotFoundError(f"CSV não encontrado: {caminho_csv}") from erro
 
-    df = pd.read_csv(caminho_csv)
+    faltando = set(COLUNAS_ESPERADAS) - set(colunas)
+    if not faltando:
+        df = pd.read_csv(caminho_csv)
+    elif len(colunas) == len(COLUNAS_ESPERADAS) and pd.notna(
+        pd.to_datetime(colunas[0], errors="coerce", format="mixed", utc=True)
+    ):
+        df = pd.read_csv(caminho_csv, header=None, names=COLUNAS_ESPERADAS)
+    else:
+        raise ValueError(f"Colunas ausentes no CSV: {', '.join(sorted(faltando))}")
 
-    faltando = set(COLUNAS_ESPERADAS) - set(df.columns)
-    if faltando:
-        raise ValueError(f"Colunas ausentes no CSV: {faltando}")
-
-    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
-    df = df.sort_values("timestamp").reset_index(drop=True)
-    return df
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="mixed", utc=True)
+    tempos = pd.to_numeric(df["tempo_ciclo_segundos"], errors="coerce")
+    df["tempo_ciclo_segundos"] = tempos.where(tempos.ge(0) & tempos.lt(math.inf))
+    return df.sort_values("timestamp").reset_index(drop=True)
 
 
 def filtrar_por_maquina(df: pd.DataFrame, bancada_id: str | None) -> pd.DataFrame:
@@ -78,14 +91,48 @@ def filtrar_por_maquina(df: pd.DataFrame, bancada_id: str | None) -> pd.DataFram
     return df[df["bancada_id"] == bancada_id].reset_index(drop=True)
 
 
+def _resumir_tempos_ciclo(tempos: pd.Series) -> dict:
+    return {
+        "tempo_ciclo_medio": float(tempos.mean()),
+        "tempo_ciclo_desvio_padrao": float(tempos.std(ddof=0)),
+        "tempo_ciclo_min": float(tempos.min()),
+        "tempo_ciclo_max": float(tempos.max()),
+    }
+
+
 def estatisticas_descritivas(df: pd.DataFrame) -> dict:
     return {
-        "tempo_ciclo_medio": float(df["tempo_ciclo_segundos"].mean()),
-        "tempo_ciclo_desvio_padrao": float(df["tempo_ciclo_segundos"].std(ddof=0)),
-        "tempo_ciclo_min": float(df["tempo_ciclo_segundos"].min()),
-        "tempo_ciclo_max": float(df["tempo_ciclo_segundos"].max()),
+        **_resumir_tempos_ciclo(df["tempo_ciclo_segundos"]),
         "total_pecas_boas": int(df["pecas_boas"].sum()),
         "total_pecas_defeituosas": int(df["pecas_defeituosas"].sum()),
+    }
+
+
+def analisar_cronometragem(df: pd.DataFrame, config: ConfiguracaoOEE) -> dict:
+    """Resume as durações válidas dos ciclos em produção, em segundos."""
+    capacidade = config.capacidade_teorica_pecas_seg
+    if not math.isfinite(capacidade) or capacidade <= 0:
+        raise ValueError("capacidade_teorica_pecas_seg deve ser finita e maior que zero")
+
+    tempo_ideal = 1 / capacidade
+    em_producao = df.loc[df["status_operacional"] == STATUS_PRODUCAO, "tempo_ciclo_segundos"]
+    tempos = pd.to_numeric(em_producao, errors="coerce")
+    validos = tempos[tempos.gt(0) & tempos.lt(math.inf)]
+    resultado = {
+        "registros_em_producao": len(em_producao),
+        "ciclos_validos": len(validos),
+        "ciclos_sem_tempo_valido": len(em_producao) - len(validos),
+        "tempo_ciclo_ideal": tempo_ideal,
+        "ciclos_acima_do_ideal": int(validos.gt(tempo_ideal).sum()),
+    }
+    if validos.empty:
+        return resultado
+
+    return {
+        **resultado,
+        **_resumir_tempos_ciclo(validos),
+        "tempo_ciclo_mediano": float(validos.median()),
+        "tempo_ciclo_p90": float(validos.quantile(0.9)),
     }
 
 
@@ -94,8 +141,8 @@ def calcular_oee(df: pd.DataFrame, config: ConfiguracaoOEE) -> dict:
     total_pecas_defeituosas = int(df["pecas_defeituosas"].sum())
     quantidade_total_produzida = total_pecas_boas + total_pecas_defeituosas
 
-    em_producao = df[df["status_operacional"] == "EM_PRODUCAO"]
-    tempo_operacional_real = float(em_producao["tempo_ciclo_segundos"].sum())
+    tempos_em_producao = df.loc[df["status_operacional"] == STATUS_PRODUCAO, "tempo_ciclo_segundos"]
+    tempo_operacional_real = float(tempos_em_producao.sum())
 
     if config.tempo_planejado_segundos <= 0:
         raise ValueError("tempo_planejado_segundos deve ser maior que zero")
@@ -190,19 +237,32 @@ def gravar_indicador_mysql(
     logger.info("Indicador OEE gravado no MySQL para maquina_id=%s", maquina_id)
 
 
-def processar_csv(caminho_csv: str, maquina_id: int = 1, bancada_id: str | None = None, gravar_banco: bool = True):
-    df = ler_csv_producao(caminho_csv)
-    df = filtrar_por_maquina(df, bancada_id)
+def processar_csv(
+    caminho_csv: str | Path,
+    maquina_id: int = 1,
+    bancada_id: str | None = None,
+    gravar_banco: bool = True,
+    *,
+    tendencia: bool = False,
+    cronometragem: bool = False,
+):
+    df = filtrar_por_maquina(ler_csv_producao(caminho_csv), bancada_id)
 
     if df.empty:
         logger.warning("Nenhum dado encontrado após os filtros aplicados no arquivo %s", caminho_csv)
         return None
 
-    stats = estatisticas_descritivas(df)
-    logger.info("Estatísticas do arquivo %s: %s", caminho_csv, stats)
+    config = ConfiguracaoOEE()
+    logger.info("Estatísticas do arquivo %s: %s", caminho_csv, estatisticas_descritivas(df))
 
-    indicadores = calcular_oee(df, ConfiguracaoOEE())
+    indicadores = calcular_oee(df, config)
     logger.info("Indicadores OEE do arquivo %s: %s", caminho_csv, indicadores)
+
+    if cronometragem:
+        logger.info("Cronometragem do arquivo %s: %s", caminho_csv, analisar_cronometragem(df, config))
+
+    if tendencia:
+        logger.info("Série de OEE por hora + média móvel:\n%s", media_movel_oee(df, config))
 
     if gravar_banco:
         gravar_indicador_mysql(
@@ -221,6 +281,9 @@ def varrer_diretorio(
     bancada_id: str | None = "BANCADA_SMART_01",
     gravar_banco: bool = True,
     intervalo_segundos: int = 30,
+    *,
+    tendencia: bool = False,
+    cronometragem: bool = False,
 ):
     if intervalo_segundos <= 0:
         raise ValueError("intervalo_segundos deve ser maior que zero")
@@ -232,18 +295,20 @@ def varrer_diretorio(
 
     while True:
         for arquivo_csv in sorted(diretorio_path.glob("*.csv")):
-            chave = arquivo_csv.resolve()
-            ultima_modificacao = arquivo_csv.stat().st_mtime
-            if processados.get(chave) == ultima_modificacao:
-                continue
-
-            logger.info("Processando arquivo: %s", arquivo_csv)
             try:
+                chave = arquivo_csv.resolve()
+                ultima_modificacao = arquivo_csv.stat().st_mtime_ns
+                if processados.get(chave) == ultima_modificacao:
+                    continue
+
+                logger.info("Processando arquivo: %s", arquivo_csv)
                 processar_csv(
-                    caminho_csv=str(arquivo_csv),
+                    caminho_csv=arquivo_csv,
                     maquina_id=maquina_id,
                     bancada_id=bancada_id,
                     gravar_banco=gravar_banco,
+                    tendencia=tendencia,
+                    cronometragem=cronometragem,
                 )
                 processados[chave] = ultima_modificacao
             except Exception:
@@ -261,6 +326,7 @@ def main():
     parser.add_argument("--maquina-id", type=int, default=1, help="ID da máquina no banco (valor padrão: 1)")
     parser.add_argument("--gravar-banco", action="store_true", help="Gravar o resultado no MySQL")
     parser.add_argument("--tendencia", action="store_true", help="Calcular também a série de OEE por hora + média móvel")
+    parser.add_argument("--cronometragem", action="store_true", help="Analisar as durações dos ciclos em produção")
     args = parser.parse_args()
 
     if args.watch_dir:
@@ -271,6 +337,8 @@ def main():
                 bancada_id=args.bancada_id,
                 gravar_banco=args.gravar_banco,
                 intervalo_segundos=args.intervalo,
+                tendencia=args.tendencia,
+                cronometragem=args.cronometragem,
             )
         except KeyboardInterrupt:
             logger.info("Varredura interrompida pelo usuário")
@@ -279,30 +347,14 @@ def main():
     if not args.csv:
         raise ValueError("Informe --csv ou --watch-dir")
 
-    df = ler_csv_producao(args.csv)
-    df = filtrar_por_maquina(df, args.bancada_id)
-
-    if df.empty:
-        logger.warning("Nenhum dado encontrado após os filtros aplicados.")
-        return
-
-    stats = estatisticas_descritivas(df)
-    logger.info("Estatísticas descritivas: %s", stats)
-
-    indicadores = calcular_oee(df, ConfiguracaoOEE())
-    logger.info("Indicadores OEE: %s", indicadores)
-
-    if args.tendencia:
-        df_tendencia = media_movel_oee(df, ConfiguracaoOEE())
-        logger.info("Série de OEE por hora + média móvel:\n%s", df_tendencia)
-
-    if args.gravar_banco:
-        gravar_indicador_mysql(
-            args.maquina_id,
-            indicadores,
-            periodo_inicio=df["timestamp"].min().to_pydatetime(),
-            periodo_fim=df["timestamp"].max().to_pydatetime(),
-        )
+    processar_csv(
+        caminho_csv=args.csv,
+        maquina_id=args.maquina_id,
+        bancada_id=args.bancada_id,
+        gravar_banco=args.gravar_banco,
+        tendencia=args.tendencia,
+        cronometragem=args.cronometragem,
+    )
 
 
 if __name__ == "__main__":
