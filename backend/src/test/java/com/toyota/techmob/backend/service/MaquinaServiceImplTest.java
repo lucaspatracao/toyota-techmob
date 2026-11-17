@@ -59,7 +59,7 @@ class MaquinaServiceImplTest {
         List<MaquinaDTO> resultado = maquinaService.listarTodas();
 
         assertThat(resultado).containsExactly(
-                new MaquinaDTO(1L, "BANCADA_SMART_01", "Bancada Smart 4.0", "EM_PRODUCAO"));
+                new MaquinaDTO(1L, "BANCADA_SMART_01", "Bancada Smart 4.0", "EM_PRODUCAO", null));
     }
 
     @Test

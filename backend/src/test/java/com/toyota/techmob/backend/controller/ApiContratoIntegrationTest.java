@@ -60,6 +60,8 @@ class ApiContratoIntegrationTest {
 
     private Long maquinaComDadosId;
     private Long maquinaSemDadosId;
+    private Long pedido1Id;
+    private Long pedido2Id;
 
     @BeforeEach
     void popularBanco() {
@@ -92,6 +94,8 @@ class ApiContratoIntegrationTest {
 
         Pedido pedido1 = pedidoRepository.save(pedido(bancada, 1, "2026-08-17T08:00:00Z", "2026-08-17T09:00:00Z"));
         Pedido pedido2 = pedidoRepository.save(pedido(bancada, 2, "2026-08-17T09:00:00Z", "2026-08-17T10:00:00Z"));
+        pedido1Id = pedido1.getId();
+        pedido2Id = pedido2.getId();
         indicadorOEERepository.save(indicador(pedido1, "70.000"));
         indicadorOEERepository.save(indicador(pedido2, "74.600"));
     }
@@ -140,8 +144,8 @@ class ApiContratoIntegrationTest {
 
         assertThat(resp.statusCode()).isEqualTo(200);
         assertThat(resp.body()).isEqualTo("["
-                + "{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\"},"
-                + "{\"id\":" + maquinaSemDadosId + ",\"bancadaId\":\"BANCADA_SMART_02\",\"nome\":\"Bancada Reserva\",\"statusAtual\":\"PARADA\"}"
+                + "{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\",\"ultimaLeituraEm\":null},"
+                + "{\"id\":" + maquinaSemDadosId + ",\"bancadaId\":\"BANCADA_SMART_02\",\"nome\":\"Bancada Reserva\",\"statusAtual\":\"PARADA\",\"ultimaLeituraEm\":null}"
                 + "]");
     }
 
@@ -151,9 +155,11 @@ class ApiContratoIntegrationTest {
 
         assertThat(resp.statusCode()).isEqualTo(200);
         assertThat(resp.body()).isEqualTo("{"
-                + "\"maquina\":{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\"},"
-                + "\"indicadorAtual\":{\"maquinaId\":" + maquinaComDadosId + ",\"disponibilidade\":90.0,\"performance\":85.0,"
-                + "\"qualidade\":97.5,\"oee\":74.6,\"calculadoEm\":\"2026-08-17T10:00:00Z\"}"
+                + "\"maquina\":{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\",\"ultimaLeituraEm\":null},"
+                + "\"indicadorAtual\":{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido2Id + ",\"disponibilidade\":90.0,\"performance\":85.0,"
+                + "\"qualidade\":97.5,\"oee\":74.6,\"periodoInicio\":\"2026-08-17T09:00:00Z\",\"periodoFim\":\"2026-08-17T10:00:00Z\","
+                + "\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
+                + "\"planta\":null,\"resumoHoje\":null,\"metaOee\":null"
                 + "}");
     }
 
@@ -182,8 +188,10 @@ class ApiContratoIntegrationTest {
 
         assertThat(resp.statusCode()).isEqualTo(200);
         assertThat(resp.body()).isEqualTo("["
-                + "{\"maquinaId\":" + maquinaComDadosId + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":74.6,\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
-                + "{\"maquinaId\":" + maquinaComDadosId + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":70.0,\"calculadoEm\":\"2026-08-17T09:00:00Z\"}"
+                + "{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido2Id + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":74.6,"
+                + "\"periodoInicio\":\"2026-08-17T09:00:00Z\",\"periodoFim\":\"2026-08-17T10:00:00Z\",\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
+                + "{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido1Id + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":70.0,"
+                + "\"periodoInicio\":\"2026-08-17T08:00:00Z\",\"periodoFim\":\"2026-08-17T09:00:00Z\",\"calculadoEm\":\"2026-08-17T09:00:00Z\"}"
                 + "]");
     }
 

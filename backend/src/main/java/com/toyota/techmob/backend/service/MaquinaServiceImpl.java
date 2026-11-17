@@ -62,6 +62,7 @@ public class MaquinaServiceImpl implements MaquinaService {
             logger.warn("Nenhum indicador OEE calculado ainda para maquinaId={}", maquinaId);
         }
 
-        return new DashboardResponseDTO(DtoMapper.paraDTO(maquina), indicadorAtual);
+        // Estado ao vivo, resumo do dia e meta entram com o pacote de coleta.
+        return new DashboardResponseDTO(DtoMapper.paraDTO(maquina), indicadorAtual, null, null, null);
     }
 }

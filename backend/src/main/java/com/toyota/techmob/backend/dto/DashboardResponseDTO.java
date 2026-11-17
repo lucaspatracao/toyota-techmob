@@ -1,12 +1,18 @@
 package com.toyota.techmob.backend.dto;
 
 /**
- * Resposta de GET /api/dashboard/{maquinaId}: dados da máquina mais o
- * indicador de OEE mais recente, para o frontend fazer uma chamada só.
+ * Resposta de GET /api/dashboard/{maquinaId}: tudo o que a tela Dashboard
+ * precisa numa chamada só.
  *
- * indicadorAtual vem null quando ainda não há OEE calculado.
+ * indicadorAtual: OEE do último pedido concluído (null se ainda não houver).
+ * planta: estado ao vivo da bancada (o mesmo de /api/planta/{id}/status).
+ * resumoHoje: pedidos do dia corrente.
+ * metaOee: meta de OEE em % (variável META_OEE).
  */
 public record DashboardResponseDTO(
         MaquinaDTO maquina,
-        IndicadorOEEDTO indicadorAtual) {
+        IndicadorOEEDTO indicadorAtual,
+        StatusPlantaDTO planta,
+        ResumoPedidosDTO resumoHoje,
+        Double metaOee) {
 }
