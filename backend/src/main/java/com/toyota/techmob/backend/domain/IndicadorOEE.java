@@ -10,6 +10,10 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
+/**
+ * OEE de um pedido concluído. periodoInicio e periodoFim são o início e o
+ * fim do pedido; os percentuais vão de 0 a 100.
+ */
 @Entity
 @Table(name = "indicador_oee")
 @Getter
@@ -26,6 +30,11 @@ public class IndicadorOEE {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "maquina_id", nullable = false)
     private Maquina maquina;
+
+    /** Um indicador por pedido. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pedido_id", nullable = false, unique = true)
+    private Pedido pedido;
 
     @Column(name = "periodo_inicio", nullable = false)
     private OffsetDateTime periodoInicio;

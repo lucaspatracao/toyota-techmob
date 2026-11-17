@@ -54,7 +54,7 @@ public class MaquinaServiceImpl implements MaquinaService {
         // Sem OEE calculado ainda (ex.: o Python nunca rodou), devolve o
         // dashboard com indicador nulo; o frontend mostra o estado vazio.
         IndicadorOEEDTO indicadorAtual = indicadorOEERepository
-                .findTopByMaquinaIdOrderByCriadoEmDesc(maquinaId)
+                .findTopByMaquinaIdOrderByPeriodoFimDesc(maquinaId)
                 .map(DtoMapper::paraDTO)
                 .orElse(null);
 

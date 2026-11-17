@@ -1,9 +1,7 @@
 package com.toyota.techmob.backend.mapper;
 
-import com.toyota.techmob.backend.domain.HistoricoProducao;
 import com.toyota.techmob.backend.domain.IndicadorOEE;
 import com.toyota.techmob.backend.domain.Maquina;
-import com.toyota.techmob.backend.dto.HistoricoProducaoDTO;
 import com.toyota.techmob.backend.dto.IndicadorOEEDTO;
 import com.toyota.techmob.backend.dto.MaquinaDTO;
 
@@ -33,15 +31,5 @@ public final class DtoMapper {
                 indicador.getQualidade().doubleValue(),
                 indicador.getOee().doubleValue(),
                 indicador.getCriadoEm().toInstant());
-    }
-
-    public static HistoricoProducaoDTO paraDTO(HistoricoProducao registro) {
-        return new HistoricoProducaoDTO(
-                registro.getMaquina().getId(),
-                registro.getTimestamp().toInstant(),
-                registro.getStatusOperacional(),
-                registro.getPecasBoas(),
-                registro.getPecasDefeituosas(),
-                registro.getTempoCicloSegundos());
     }
 }
