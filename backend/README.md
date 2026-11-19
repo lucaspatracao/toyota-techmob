@@ -1,11 +1,15 @@
 # Backend TechMob 4.0
 
-API REST em Java (Spring Boot) que lê o MySQL e entrega os dados de produção e OEE da Bancada Smart 4.0 para o dashboard.
+Backend em Java (Spring Boot) com dois papéis:
 
-A API é **somente leitura**: quem grava no banco é o módulo Python ([`data/oee_calculator.py`](../data/oee_calculator.py)), a partir do CSV que o Node-RED gera com os dados da Smart.
+1. **Coleta (pacote `coleta`):** consulta o `GET /dadosPlanta` da Bancada Smart 4.0 a cada 1 s, identifica cada pedido pelas mudanças de estado, calcula o OEE do pedido e grava pedido, etapas e indicador no MySQL. É a única parte do sistema que escreve no banco.
+2. **API REST:** entrega ao dashboard o estado ao vivo da bancada, os pedidos e o OEE. Todos os endpoints são `GET`.
 
 ```
-Smart → MQTT → Node-RED → CSV → Python (OEE) → MySQL → API (este projeto) → Dashboard
+Node-RED da bancada (ou simulador) → PlantaClient → DetectorPedidos → CalculadoraOEE → MySQL
+                                                       └─ estado ao vivo em memória ─┐   │
+                                                                                     ▼   ▼
+                                                                         API REST → Dashboard
 ```
 
 ## Requisitos
@@ -27,7 +31,21 @@ As credenciais do banco vêm do ambiente, nunca do repositório. Só `DB_PASSWOR
 | `DB_PASSWORD` | *(obrigatória)* |
 | `SHOW_SQL` | `false` (use `true` para ver o SQL no console) |
 
-São as mesmas variáveis que o `oee_calculator.py` usa, então basta configurar uma vez.
+A coleta (propriedades `techmob.*` em `application.properties`, lidas pelo `PlantaProperties`) também tem uma variável e um padrão para cada valor:
+
+| Variável | Propriedade | Padrão | Para quê |
+|---|---|---|---|
+| `COLETA_HABILITADA` | `techmob.coleta.habilitada` | `true` | `false` desliga a leitura da bancada (os testes rodam assim) |
+| `MAQUINA_ID` | `techmob.planta.maquina-id` | `1` | Máquina que recebe os pedidos |
+| `PLANTA_URL` | `techmob.planta.url` | `http://localhost:1880/dadosPlanta` | Node-RED da bancada (ou o simulador no lugar dela) |
+| `PLANTA_URL_FALLBACK` | `techmob.planta.url-fallback` | `http://localhost:1881/dadosPlanta` | Simulador lido depois de 3 falhas seguidas na `PLANTA_URL` |
+| `PLANTA_INTERVALO_MS` | `techmob.planta.intervalo-ms` | `1000` | Intervalo entre leituras |
+| `PLANTA_TIMEOUT_MS` | `techmob.planta.timeout-ms` | `2000` | Tempo máximo de cada leitura |
+| `PLANTA_SEGUNDOS_SEM_CONEXAO` | `techmob.planta.segundos-sem-conexao` | `10` | Sem leitura boa por mais que isso, o pedido aberto vira `INTERROMPIDO` |
+| `PLANTA_STATUS_PARADO` | `techmob.planta.status-parado` | `AGUARDANDO` | Texto da estação ociosa (confirmado) |
+| `PLANTA_STATUS_PARADA` | `techmob.planta.status-parada` | `PARADO` | Texto da estação em parada (provisório) |
+| `META_OEE` | `techmob.planta.meta-oee` | `75` | Meta de OEE em % (provisório) |
+| `TEMPO_PADRAO_ESTOQUE_S`, `TEMPO_PADRAO_MANIPULACAO_S`, `TEMPO_PADRAO_SEPARACAO_S` | `techmob.planta.tempo-padrao-s.*` | `20`, `35`, `25` | Cronometragem de cada estação (provisória; a mesma do `data/ciclo_padrao.json`) |
 
 ## Execução local
 
@@ -50,32 +68,64 @@ O atalho pede a senha se `DB_PASSWORD` não estiver definida.
 
 A API sobe em http://localhost:8080. Para conferir se ela e o banco estão no ar: http://localhost:8080/actuator/health
 
+Ao subir, a coleta já começa a ler a `PLANTA_URL`. O log mostra cada pedido:
+
+```
+Coleta ligada: lendo http://localhost:1880/dadosPlanta a cada 1000 ms (fallback: http://localhost:1881/dadosPlanta)
+Pedido 12 iniciado (SINTETICO)
+Pedido 12 concluído em 97 s: OEE 80.000%
+```
+
+Pedidos que ficaram `EM_ANDAMENTO` porque o backend parou no meio viram `INTERROMPIDO` na próxima subida.
+
+### Contra o simulador (sem a bancada)
+
+Em outro terminal, suba o simulador na porta padrão da bancada; o backend não precisa de nenhuma variável a mais:
+
+```powershell
+python data/simulador_planta.py                                            # pedidos sintéticos
+python data/simulador_planta.py --modo replay --gravacao data/gravacoes/<sessao>.jsonl
+```
+
+No laboratório, aponte para a bancada e deixe o simulador de reserva na 1881:
+
+```powershell
+$env:PLANTA_URL = "http://<IP do notebook do laboratório>:1880/dadosPlanta"
+python data/simulador_planta.py --modo replay --gravacao data/gravacoes/<sessao>.jsonl --porta 1881
+```
+
 ## Testes
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-Não precisam de MySQL:
+Não precisam de MySQL nem da bancada:
 
+- **Regras da coleta** (`coleta/*Test`): `DetectorPedidosTest` e `CalculadoraOEETest` usam as mesmas gravações do Python (`src/test/resources/gravacoes/`) e conferem os mesmos números (o exemplo de 80,0%, reprovado, interrompido, performance limitada a 100%, acumulado por soma de tempos). `PlantaClientTest` cobre resposta normal, JSON inválido, queda e troca para o fallback; `ColetorPlantaTest` passa uma gravação inteira pelo laço da coleta.
 - **Testes de service** (`service/*Test`): usam mocks dos repositórios.
-- **`ApiContratoIntegrationTest`**: sobe a API inteira com um banco H2 em memória, chama cada endpoint por HTTP e confere o JSON exato. Se algum campo mudar de nome ou formato, o teste falha antes de quebrar o frontend.
+- **`ApiContratoIntegrationTest`**: sobe a aplicação inteira com H2 em memória e relógio fixo, chama cada endpoint por HTTP e confere o JSON exato, além dos erros 404, 400 e 405 e do CORS. Se algum campo mudar de nome ou formato, o teste falha antes de quebrar o frontend.
 
 ## Estrutura
 
 ```
 src/main/java/com/toyota/techmob/backend/
+├── coleta/      leitura da bancada: PlantaClient (GET com timeout e fallback),
+│                DetectorPedidos e CalculadoraOEE (classes puras, sem Spring),
+│                ColetorPlanta (@Scheduled) e EstadoPlantaAtual (estado ao vivo em memória)
 ├── controller/  recebe as requisições HTTP e devolve JSON
-├── service/     regras de negócio (interface + implementação)
-├── repository/  acesso ao banco (Spring Data JPA; a consulta sai do nome do método)
+├── service/     regras de negócio (interface + implementação); RegistroPedidoService é o único que grava
+├── repository/  acesso ao banco (Spring Data JPA)
 ├── domain/      entidades JPA, espelham as tabelas
 ├── dto/         respostas da API (records); a entidade nunca é exposta direto
 ├── mapper/      conversão entidade → DTO, num lugar só
 ├── exception/   tratamento global de erros
-└── config/      CORS (libera o frontend em localhost:5173 e :3000)
+└── config/      PlantaProperties (techmob.planta.*) e CORS (só GET, para localhost:5173 e :3000)
 ```
 
-Caminho de uma requisição: `Controller → Service → Repository → MySQL`, e na volta `Entidade → DtoMapper → DTO → JSON`.
+Caminho de uma requisição: `Controller → Service → Repository → MySQL`, e na volta `Entidade → DtoMapper → DTO → JSON`. O estado ao vivo (`/api/planta/{id}/status`) vem da memória da coleta, sem passar pelo banco.
+
+Caminho de uma leitura da bancada: `ColetorPlanta → PlantaClient → DetectorPedidos → (eventos) → RegistroPedidoService → MySQL`.
 
 ## Endpoints
 
