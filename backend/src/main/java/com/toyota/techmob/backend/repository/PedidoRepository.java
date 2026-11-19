@@ -17,13 +17,15 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     /**
      * Pedidos de uma máquina que começaram em [de, ate), do mais recente ao
      * mais antigo, já com etapas e indicador (uma consulta só).
-     * origem nula = todas as origens.
+     * Filtro nulo = sem esse filtro (de nulo: desde o primeiro pedido; ate
+     * nulo: até o último; origem nula: todas as origens).
      */
     @EntityGraph(attributePaths = {"etapas", "indicador"})
     @Query("""
             select p from Pedido p
             where p.maquina.id = :maquinaId
-              and p.inicio >= :de and p.inicio < :ate
+              and (:de is null or p.inicio >= :de)
+              and (:ate is null or p.inicio < :ate)
               and (:origem is null or p.origem = :origem)
             order by p.inicio desc
             """)

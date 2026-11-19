@@ -72,10 +72,7 @@ public final class DtoMapper {
                 .sorted(Comparator.comparing(EtapaPedido::getEstacao))
                 .forEach(e -> duracaoEtapas.merge(e.getEstacao(), numero(e.getDuracaoS()), Double::sum));
 
-        Double tempoPadrao = etapas.isEmpty() ? null : etapas.stream()
-                .map(EtapaPedido::getTempoPadraoS)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .doubleValue();
+        Double tempoPadrao = etapas.isEmpty() ? null : numero(pedido.somaTempoPadraoS());
 
         return new PedidoDTO(
                 pedido.getId(),
