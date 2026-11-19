@@ -160,7 +160,15 @@ class ApiContratoIntegrationTest {
                 + "\"indicadorAtual\":{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido2Id + ",\"disponibilidade\":90.0,\"performance\":85.0,"
                 + "\"qualidade\":97.5,\"oee\":74.6,\"periodoInicio\":\"2026-08-17T09:00:00Z\",\"periodoFim\":\"2026-08-17T10:00:00Z\","
                 + "\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
-                + "\"planta\":null,\"resumoHoje\":null,\"metaOee\":null"
+                + "\"planta\":{\"maquinaId\":" + maquinaComDadosId + ",\"status\":\"SEM_CONEXAO\",\"conectado\":false,\"fonte\":null,\"operacao\":null,"
+                + "\"estacoes\":[{\"estacao\":\"ESTOQUE\",\"status\":null,\"situacao\":\"SEM_CONEXAO\",\"tempoPadraoS\":20.0},"
+                + "{\"estacao\":\"MANIPULACAO\",\"status\":null,\"situacao\":\"SEM_CONEXAO\",\"tempoPadraoS\":35.0},"
+                + "{\"estacao\":\"SEPARACAO\",\"status\":null,\"situacao\":\"SEM_CONEXAO\",\"tempoPadraoS\":25.0}],"
+                + "\"pedidoEmAndamento\":null,\"tempoPadraoPedidoS\":80.0,\"ultimaLeituraEm\":null},"
+                + "\"resumoHoje\":{\"concluidos\":0,\"aprovados\":0,\"reprovados\":0,\"interrompidos\":0,\"pecasProduzidas\":0,"
+                + "\"taxaReprovacao\":null,\"leadTimeMedioS\":null,\"tempoParadoTotalS\":0.0,"
+                + "\"disponibilidade\":null,\"performance\":null,\"qualidade\":null,\"oee\":null},"
+                + "\"metaOee\":75.0"
                 + "}");
     }
 
