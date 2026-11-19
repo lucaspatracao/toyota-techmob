@@ -194,6 +194,9 @@
 .dot-red {
   background: var(--accent-red);
 }
+.dot-gray {
+  background: var(--text-tertiary);
+}
 
 .sidebar-footer {
   font-size: 10.5px;
