@@ -113,3 +113,118 @@
     margin-left: 0;
   }
 }
+
+/* ---- Tabela de pedidos ---- */
+.data-table tr.linha-aberta td {
+  background: var(--bg-card-hover);
+}
+.tabela-vazia {
+  text-align: center;
+  color: var(--text-tertiary);
+  padding: 28px 0;
+}
+
+/* ---- Detalhe do pedido: linha do tempo das etapas contra o padrão ---- */
+.detalhe-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.detalhe-resumo b {
+  color: var(--text-primary);
+  margin-left: 4px;
+}
+.detalhe-etapas {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+.detalhe-etapas li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) minmax(190px, auto);
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+.detalhe-etapa-nome {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.detalhe-trilho {
+  position: relative;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-app);
+}
+.detalhe-padrao {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 2px dashed var(--text-tertiary);
+  border-radius: var(--radius-sm);
+}
+.detalhe-barra {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  justify-content: flex-end;
+}
+.detalhe-parado {
+  height: 100%;
+  background: repeating-linear-gradient(135deg, var(--accent-red) 0 4px, transparent 4px 7px);
+  background-color: rgba(225, 29, 72, 0.55);
+}
+.detalhe-etapa-tempos {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.detalhe-etapa-tempos.acima {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+.detalhe-etapa-tempos small {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+.detalhe-vazio {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.detalhe-legenda {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+.detalhe-legenda i {
+  display: inline-block;
+  width: 16px;
+  height: 10px;
+  border-radius: 3px;
+}
+.detalhe-legenda-barra {
+  background: var(--accent-purple);
+}
+.detalhe-legenda-padrao {
+  border: 2px dashed var(--text-tertiary);
+}
+.detalhe-legenda-parado {
+  background: rgba(225, 29, 72, 0.55);
+}
+@media (max-width: 700px) {
+  .detalhe-etapas li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .detalhe-etapa-tempos {
+    white-space: normal;
+  }
+}
