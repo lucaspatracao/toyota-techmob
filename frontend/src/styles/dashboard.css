@@ -69,6 +69,8 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .kpi-trend.up {
   color: var(--accent-green);
@@ -273,6 +275,14 @@
   color: var(--accent-orange);
   background: var(--accent-orange-bg);
 }
+.status-online-pill.status-parado {
+  color: var(--accent-red);
+  background: var(--accent-red-bg);
+}
+.status-online-pill.status-aguardando {
+  color: var(--text-tertiary);
+  background: var(--bg-app);
+}
 .status-line-machine {
   display: flex;
   align-items: center;
@@ -327,8 +337,106 @@
   line-height: 1.2;
 }
 
-.status-line-machine-sub {
-  animation: valueUpdatePulse 0.7s ease;
+.status-line-machine-info {
+  flex: 1;
+  min-width: 0;
+}
+.status-line-machine-sub.acima {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+
+/* ---- Andon: pedido em andamento e as três estações ---- */
+.andon-progress-track {
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--border-subtle);
+  margin-top: 8px;
+  overflow: hidden;
+}
+.andon-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--content-accent);
+  transition: width 0.6s ease;
+}
+.andon-progress-fill.acima {
+  background: var(--accent-red);
+}
+.andon-estacoes {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.andon-estacao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.andon-estacao .dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+.andon-estacao-nome {
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 104px;
+}
+@media (max-width: 640px) {
+  .andon-estacao {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .andon-estacao-nome {
+    min-width: 0;
+  }
+}
+.andon-estacao-status {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.andon-estacao-extra {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+.andon-estacao-extra.atraso {
+  color: var(--accent-red);
+  font-weight: 700;
+}
+
+/* ---- Tendência: meta e estado vazio ---- */
+.dash-trend-meta {
+  display: inline-block;
+  width: 16px;
+  border-top: 2px dashed var(--text-tertiary);
+  margin-left: 10px;
+}
+.dash-trend-vazio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.kpi-caption-alerta {
+  color: var(--accent-red);
+  font-weight: 600;
+}
+.kpi-card-featured .kpi-caption-alerta {
+  color: #fff;
+  font-weight: 700;
 }
 .status-line-metrics .status-line-metric:last-child {
   border-bottom: none;
