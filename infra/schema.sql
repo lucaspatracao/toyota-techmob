@@ -132,9 +132,9 @@ CREATE INDEX idx_leitura_planta_maquina_lido_em
 -- ---------------------------------------------------------------------
 -- Seed: a Bancada Smart 4.0 do laboratório, fixa no id = 1 (o frontend
 -- e as requisições da API usam esse id).
--- tempo_padrao_pedido_s = 80 s é PROVISÓRIO (20 s estoque + 35 s
--- manipulação + 25 s separação, os mesmos de data/ciclo_padrao.json):
--- trocar pela cronometragem real depois da ida ao laboratório.
+-- tempo_padrao_pedido_s = 80 s: cronometragem da equipe (20 s estoque +
+-- 35 s manipulação + 25 s separação), a mesma do data/ciclo_padrao.json e
+-- de TEMPO_PADRAO_*_S no backend.
 -- ---------------------------------------------------------------------
 INSERT INTO maquina (id, identificador_bancada, nome, status_operacional, tempo_padrao_pedido_s, pecas_por_pedido)
 VALUES (1, 'BANCADA_SMART_01', 'Bancada Smart 4.0 - Lab SENAI', 'SEM_CONEXAO', 80.000, 3)

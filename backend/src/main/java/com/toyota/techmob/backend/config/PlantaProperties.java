@@ -18,10 +18,10 @@ import com.toyota.techmob.backend.domain.Estacao;
  * @param intervaloMs        intervalo entre leituras
  * @param timeoutMs          tempo máximo de cada leitura
  * @param segundosSemConexao sem leitura boa por mais que isso, o pedido aberto é interrompido
- * @param statusParado       texto da estação ociosa, esperando peça (confirmado: AGUARDANDO)
- * @param statusParada       texto da estação em parada (provisório: PARADO)
- * @param metaOee            meta de OEE em % (provisório: 75)
- * @param tempoPadraoS       cronometragem de cada estação, em segundos (provisório: 20/35/25)
+ * @param statusParado       texto da estação ociosa, esperando peça (lido na bancada: AGUARDANDO)
+ * @param statusParada       texto da estação em parada (o mesmo do simulador: PARADO)
+ * @param metaOee            meta de OEE em % (75)
+ * @param tempoPadraoS       cronometragem de cada estação, em segundos (cronometragem da equipe: 20/35/25)
  */
 @ConfigurationProperties("techmob.planta")
 public record PlantaProperties(

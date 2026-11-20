@@ -39,7 +39,7 @@ A pasta `dist/` é gerada a cada build e **não é versionada**. O build separa 
 | 4 cards (OEE, Disponibilidade, Performance, Qualidade) | Os do **último pedido concluído**, com a meta, o tempo parado, o lead time contra o padrão e se o pedido foi aprovado. As setas comparam com a média dos 10 pedidos anteriores | `/api/dashboard/{id}`, `/api/pedidos/detalhe/{id}` |
 | Tendência | OEE pedido a pedido (últimos 10, 20 ou 50), com a meta tracejada e os pedidos abaixo dela em vermelho | `/api/indicadores/historico/{id}` |
 | Status da linha (Andon) | As 3 estações (verde operando, cinza aguardando, vermelho parado), o pedido em andamento com a etapa atual e o tempo decorrido contra o padrão, a estação que mais atrasou no último pedido e os números de hoje | `/api/dashboard/{id}` |
-| Aviso | API fora do ar, bancada sem conexão, ou dado vindo do replay ou da simulação | `/api/dashboard/{id}` |
+| Aviso | Só quando falta dado: API fora do ar ou fonte sem conexão | `/api/dashboard/{id}` |
 
 ### Produção
 

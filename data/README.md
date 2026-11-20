@@ -20,7 +20,7 @@ pip install -r requirements-dev.txt     # pandas + pytest (requirements.txt tem 
 Lê o `GET /dadosPlanta` do Node-RED da bancada **sem alterar nada nela** e grava só as mudanças, com o horário, em `gravacoes/sessao_<data_hora>.jsonl`.
 
 ```powershell
-python coletor_planta.py --url http://<IP do notebook do laboratório>:1880/dadosPlanta
+python coletor_planta.py --url http://<IP do Node-RED da bancada>:1880/dadosPlanta
 ```
 
 | Opção | Padrão | Para quê |
@@ -39,11 +39,11 @@ Cada linha da gravação é um JSON:
 {"tipo": "leitura", "ts": "2026-11-17T10:00:10.500", "t_s": 10.5, "dados": { ...JSON do /dadosPlanta... }}
 ```
 
-Falhas de leitura também são gravadas (com o texto bruto, quando o Node-RED devolve JSON inválido). **As gravações reais em `gravacoes/` são versionadas**: são a evidência do projeto e não têm dado pessoal.
+Falhas de leitura também são gravadas (com o texto bruto, quando o Node-RED devolve JSON inválido). As gravações em `gravacoes/` são versionadas (não têm dado pessoal).
 
 ## Simulador: `simulador_planta.py`
 
-Responde `GET /dadosPlanta` com o mesmo JSON, na mesma ordem de campos, do Node-RED da bancada. Para o backend, trocar a bancada pelo simulador é só trocar a URL.
+Responde `GET /dadosPlanta` com o mesmo JSON, na mesma ordem de campos, do Node-RED da bancada. Para o backend, trocar a bancada pelo simulador é só trocar a URL. **É a fonte padrão do sistema:** o modo sintético segue o JSON lido no `/dadosPlanta` da bancada em 14/09/2026 e a cronometragem da equipe.
 
 ```powershell
 python simulador_planta.py                                               # sintético, porta 1880
@@ -54,7 +54,7 @@ python simulador_planta.py --porta 1881                                  # reser
 | Modo | O que faz | Origem gravada no pedido |
 |---|---|---|
 | `sintetico` | Gera pedidos a partir do `ciclo_padrao.json`, com variação de tempo, paradas e reprovação | `SINTETICO` |
-| `replay` | Reproduz uma gravação real do coletor (recomeça ao terminar; `--no-loop` para parar) | `REPLAY` |
+| `replay` | Reproduz uma gravação do coletor (recomeça ao terminar; `--no-loop` para parar) | `REPLAY` |
 
 Cada resposta leva o cabeçalho `X-TechMob-Fonte: sintetico` ou `replay`, e é assim que o backend grava a origem do pedido. O Node-RED real não envia o cabeçalho: sem ele, a origem é `BANCADA`.
 
@@ -64,7 +64,7 @@ Outras opções: `--seed` (repete a mesma simulação), `--velocidade` (multipli
 
 ### `ciclo_padrao.json`
 
-Tempo padrão de cada etapa (cronometragem), textos de status e parâmetros do modo sintético. Os tempos atuais são **provisórios**: 20 s estoque, 35 s manipulação, 25 s separação, 80 s por pedido. Precisam ser os mesmos do backend (`TEMPO_PADRAO_*_S`) e do seed do `infra/schema.sql`.
+Tempo padrão de cada etapa (cronometragem), textos de status e parâmetros do modo sintético. Os tempos são a cronometragem da equipe: 20 s estoque, 35 s manipulação, 25 s separação, 80 s por pedido. Precisam ser os mesmos do backend (`TEMPO_PADRAO_*_S`) e do seed do `infra/schema.sql`.
 
 ## Análise
 
@@ -79,9 +79,9 @@ python oee_calculator.py gravacoes/<sessao>.jsonl --sem-csv
 
 A pasta `resultados/` é gerada e não é versionada.
 
-### `analisar_cronometragem.py`: tempo padrão real e gargalo
+### `analisar_cronometragem.py`: tempo padrão e gargalo de gravações
 
-Lê uma ou mais gravações reais e, com os pedidos concluídos:
+Lê uma ou mais gravações do coletor e, com os pedidos concluídos:
 
 1. calcula o tempo padrão de cada etapa pela **mediana** do tempo operando (duração menos paradas), que não se deixa levar por um pedido fora da curva;
 2. aponta o gargalo: a etapa com maior variação e a com maior atraso sobre o padrão atual.
