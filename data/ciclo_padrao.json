@@ -1,5 +1,5 @@
 {
-  "_comentario": "Tempo padrão da Bancada Smart 4.0 (cronometragem da equipe). duracao_s = segundos de cada etapa de UM pedido. Os textos de 'status' vêm do Node-RED da bancada: confirme com o resumo do coletor_planta.py.",
+  "_comentario": "Tempo padrão da Bancada Smart 4.0 (cronometragem da equipe). duracao_s = segundos de cada etapa de UM pedido. Os textos de 'status' seguem o /dadosPlanta do Node-RED da bancada (AGUARDANDO é o lido em 14/09/2026). São os mesmos do backend (TEMPO_PADRAO_*_S, PLANTA_STATUS_*) e do seed do schema.sql.",
   "pecas_por_pedido": 3,
   "status": {
     "parado": "AGUARDANDO",
