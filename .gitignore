@@ -2,17 +2,10 @@
 backend/target/
 *.class
 
-# Node (frontend e Node-RED)
+# Node (frontend)
 node_modules/
 frontend/dist/
 frontend/build/
-
-# Node-RED: arquivos gerados em cada máquina
-node-red/.config.*.json
-node-red/.config.*.json.backup
-node-red/.flows*.json.backup
-node-red/flows_cred.json
-node-red/lib/
 
 # Python (data)
 .venv/
