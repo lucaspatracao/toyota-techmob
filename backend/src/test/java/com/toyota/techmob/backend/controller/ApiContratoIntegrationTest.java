@@ -40,7 +40,8 @@ import com.toyota.techmob.backend.repository.PedidoRepository;
                 "spring.datasource.driver-class-name=org.h2.Driver",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
-                "spring.jpa.show-sql=false"
+                "spring.jpa.show-sql=false",
+                "techmob.coleta.habilitada=false"
         })
 class ApiContratoIntegrationTest {
 
