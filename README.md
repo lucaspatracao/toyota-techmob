@@ -75,7 +75,9 @@ toyota-techmob/
 ├── infra/
 │   └── schema.sql                 # tabelas + seed da BANCADA_SMART_01 (id = 1)
 ├── docs/
-│   └── PLANO_ALINHAMENTO.md       # plano da equipe: decisões, contrato e ordem de execução
+│   ├── PLANO_ALINHAMENTO.md       # plano da equipe: decisões, contrato e ordem de execução
+│   ├── entregas/                  # planos de ação: relatório ABNT, slides e vídeo pitch
+│   └── img/                       # fotos do laboratório (14/09/2026)
 └── README.md
 ```
 
@@ -154,11 +156,11 @@ Abra http://localhost:5173. Telas e variáveis `VITE_*` em [`frontend/README.md`
 
 ## Testes
 
-| Parte | Comando | Precisa de |
-|---|---|---|
-| Backend | `cd backend; .\mvnw.cmd test` | Nada além do JDK (usa H2 em memória) |
-| Frontend | `cd frontend; npm run build` | Node.js |
-| Python | `cd data; pip install -r requirements-dev.txt; pytest` | pandas e pytest |
+| Parte | Comando | Precisa de | Resultado atual |
+|---|---|---|---|
+| Backend | `cd backend; .\mvnw.cmd test` | Nada além do JDK (usa H2 em memória) | 72 testes |
+| Frontend | `cd frontend; npm run build` | Node.js | Build sem erros |
+| Python | `cd data; pip install -r requirements-dev.txt; pytest` | pandas e pytest | 18 testes |
 
 Backend e Python usam as mesmas gravações de teste (`data/tests/gravacoes/` e `backend/src/test/resources/gravacoes/`) e conferem os mesmos números de OEE.
 
@@ -172,6 +174,18 @@ Backend e Python usam as mesmas gravações de teste (`data/tests/gravacoes/` e 
 | Peças por pedido | 3 | seed do `schema.sql`, `data/ciclo_padrao.json` |
 
 As fotos do laboratório (Node-RED, JSON, CLP e bancada) estão em [`docs/img/`](docs/img/) e no [`node-red/README.md`](node-red/README.md#fotos-laboratório-14092026).
+
+## Situação e próximas entregas
+
+O sistema está completo: as Partes 1 a 14 do [plano de alinhamento](docs/PLANO_ALINHAMENTO.md#ordem-de-execução) cobrem a coleta, o cálculo do OEE, a API e as três telas, e os testes passam (tabela acima). A próxima etapa é a documentação e a apresentação, cada uma com o seu plano de ação em [`docs/entregas/`](docs/entregas/):
+
+| Entrega | Plano de ação |
+|---|---|
+| Relatório técnico (ABNT) | [`RELATORIO_TECNICO_ABNT.md`](docs/entregas/RELATORIO_TECNICO_ABNT.md) |
+| Apresentação de slides | [`APRESENTACAO_SLIDES.md`](docs/entregas/APRESENTACAO_SLIDES.md) |
+| Vídeo pitch técnico (banca e SAGA) | [`ROTEIRO_PITCH_TECNICO.md`](docs/entregas/ROTEIRO_PITCH_TECNICO.md) |
+
+Pendências: a data da banca e a duração da apresentação, e o modelo do relatório do SENAI (até ele sair, o relatório segue a NBR 14724).
 
 ## Equipe TechMob 4.0
 

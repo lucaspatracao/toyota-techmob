@@ -257,11 +257,11 @@ READMEs (feitos nas Partes 13 e 14):
 
 Entregas da próxima etapa (fora do código):
 
-| Entrega | Base |
-| :---- | :---- |
-| Relatório técnico | Normas ABNT (NBR 14724 e associadas). O modelo do SENAI ainda não foi definido; quando sair, muda só a formatação |
-| Slides | Deck novo, feito do zero. O arquivo de 24/10 descreve a arquitetura antiga (MQTT, OEE por turno, telas antigas) e serve só para a capa, os dados de contexto (CNI) e a identidade visual |
-| Vídeo pitch técnico | Duas versões: banca (3 a 5 min) e SAGA (~1:30), descritas abaixo |
+| Entrega | Base | Plano de ação |
+| :---- | :---- | :---- |
+| Relatório técnico | Normas ABNT (NBR 14724 e associadas). O modelo do SENAI ainda não foi definido; quando sair, muda só a formatação | [`entregas/RELATORIO_TECNICO_ABNT.md`](entregas/RELATORIO_TECNICO_ABNT.md) |
+| Slides | Deck novo, feito do zero. O arquivo de 24/10 descreve a arquitetura antiga (MQTT, OEE por turno, telas antigas) e serve só para a capa, os dados de contexto (CNI) e a identidade visual | [`entregas/APRESENTACAO_SLIDES.md`](entregas/APRESENTACAO_SLIDES.md) |
+| Vídeo pitch técnico | Duas versões: banca (3 a 5 min) e SAGA (~1:30), descritas abaixo | [`entregas/ROTEIRO_PITCH_TECNICO.md`](entregas/ROTEIRO_PITCH_TECNICO.md) |
 
 Slides: a sequência segue a narrativa acima. Os pontos técnicos que precisam aparecer são a bancada e as fotos, a integração (JSON do `/dadosPlanta` e Node-RED somente leitura), a arquitetura nova, o OEE por pedido com o exemplo de 80,0%, o backend com os testes, a demonstração (Andon → etapa gargalo na Produção → Histórico) e as restrições ("dados de uma bancada didática, nenhum dado industrial ou pessoal"; "Node-RED da bancada somente leitura"). Conclusão: "O sistema já fala a língua da bancada: ligar é trocar uma URL."
 
@@ -300,8 +300,9 @@ Cada parte é uma branch e um PR, no nome de quem é responsável por ela. As br
 | 12 | Lucas | `chore/remove-fluxo-antigo` | Remoção do fluxo antigo (Node-RED local, `simulador_oee.py`, CSV de exemplo, mocks do frontend) | `mvnw test`, `npm run build`, `pytest` |
 | 13 | Nykolas | `docs/readmes-alinhamento` | `README.md` da raiz, `backend/README.md`, `frontend/README.md` e `data/README.md` | Leitura |
 | 14 | Lucas | `feat/simulacao-como-fonte` | Decisão de 19/11: simulador como fonte padrão (sem alerta no dashboard), valores definitivos e documentação atualizada | `mvnw test`, `npm run build`, `pytest` |
+| 15 | Lucas | `docs/entregas` | Planos de ação das entregas em `docs/entregas/` (relatório ABNT, slides e vídeo pitch) e README com a situação do projeto | Leitura |
 
-Fora do código: relatório técnico (ABNT), slides e vídeo pitch (banca e SAGA). (As gravações reais no laboratório foram canceladas em 19/11.)
+Fora do código: relatório técnico (ABNT), slides e vídeo pitch (banca e SAGA), com os planos de ação em [`docs/entregas/`](entregas/). (As gravações reais no laboratório foram canceladas em 19/11.)
 
 Regras para cada parte:
 
@@ -351,3 +352,4 @@ Pendências abertas (atualizadas em 20/11):
 - Data da banca e duração da apresentação.
 - Relatório técnico em ABNT: o modelo do SENAI ainda não foi definido.
 - Slides e vídeos: deck novo, feito do zero, com o dashboard rodando com o simulador e as fotos de 14/09. Capturas das telas a fazer num ensaio completo (MySQL, simulador, backend e frontend).
+- Responsáveis, prazos e checklists de cada entrega: ver os planos de ação em [`docs/entregas/`](entregas/) (a confirmar em reunião da equipe).
