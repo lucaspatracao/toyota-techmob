@@ -78,3 +78,77 @@
 .summary-legend b {
   font-size: 14px;
 }
+
+/* ---- Tempo de cada etapa por pedido ---- */
+.dash-legend-padrao {
+  border-top-color: var(--text-primary);
+}
+.chart-vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ---- Tempo médio por etapa x padrão ---- */
+.etapas-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+.etapas-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.etapas-lista li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.etapas-lista li:last-child {
+  border-bottom: none;
+}
+.etapas-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.etapas-tempos small {
+  color: var(--text-tertiary);
+}
+.etapas-diferenca {
+  min-width: 56px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+.etapas-diferenca.acima {
+  color: var(--accent-red);
+}
+.selo-gargalo {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--accent-red);
+  background: var(--accent-red-bg);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+@media (max-width: 900px) {
+  .etapas-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
