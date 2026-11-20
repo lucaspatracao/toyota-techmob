@@ -22,8 +22,9 @@ const IconSmartMark = () => (
 
 /**
  * Selo de conexão: de onde vem o dado que as telas mostram.
- * online (verde): bancada real; fallback (laranja): replay ou simulação,
- * usados quando a bancada não responde; offline (vermelho): sem dado.
+ * online (verde): a fonte está respondendo, seja a bancada, o simulador ou
+ * o replay; fallback (laranja): esperando a primeira resposta; offline
+ * (vermelho): sem dado.
  */
 function seloDeConexao(planta, apiErro) {
   if (apiErro) {
@@ -39,9 +40,13 @@ function seloDeConexao(planta, apiErro) {
     case 'BANCADA':
       return { classe: 'online', texto: 'Bancada conectada', titulo: 'Lendo o /dadosPlanta da Bancada Smart 4.0' }
     case 'REPLAY':
-      return { classe: 'fallback', texto: 'Replay', titulo: 'Reproduzindo uma execução real gravada no laboratório' }
+      return { classe: 'online', texto: 'Replay', titulo: 'Reproduzindo uma execução gravada da bancada' }
     default:
-      return { classe: 'fallback', texto: 'Simulação', titulo: 'Pedidos sintéticos gerados a partir da cronometragem' }
+      return {
+        classe: 'online',
+        texto: 'Simulação',
+        titulo: 'Simulador da bancada: o JSON do /dadosPlanta com a cronometragem da equipe',
+      }
   }
 }
 

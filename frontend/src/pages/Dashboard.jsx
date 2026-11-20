@@ -129,7 +129,11 @@ function BannerAviso({ titulo, texto, onReconectar }) {
   )
 }
 
-/** Aviso sobre a origem do dado: API fora do ar, bancada sem conexão, replay ou simulação. */
+/**
+ * Aviso só quando falta dado: API fora do ar ou fonte sem conexão. Bancada,
+ * simulador e replay são fontes normais de operação (a origem aparece no
+ * selo da barra superior e no rodapé), então não geram aviso.
+ */
 function avisoDaFonte(planta, apiErro, atualizadoEm, recarregar) {
   if (apiErro) {
     return {
@@ -143,18 +147,6 @@ function avisoDaFonte(planta, apiErro, atualizadoEm, recarregar) {
     return {
       titulo: 'Bancada sem conexão',
       texto: `Nem a bancada nem o simulador responderam${planta.ultimaLeituraEm ? ` desde ${formatarHora(planta.ultimaLeituraEm)}` : ''}. Os indicadores são do último pedido gravado.`,
-    }
-  }
-  if (planta.fonte === 'REPLAY') {
-    return {
-      titulo: 'Modo de demonstração: exibindo replay',
-      texto: 'A bancada não está sendo lida; os pedidos vêm de uma execução real gravada no laboratório.',
-    }
-  }
-  if (planta.fonte === 'SINTETICO') {
-    return {
-      titulo: 'Modo de demonstração: exibindo simulação',
-      texto: 'A bancada não está sendo lida; os pedidos são gerados a partir da cronometragem da equipe.',
     }
   }
   return null
