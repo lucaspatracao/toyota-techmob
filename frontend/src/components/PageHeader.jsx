@@ -1,9 +1,15 @@
+import { useEffect, useState } from 'react'
 import '../styles/pageheader.css'
 
+/** Data e hora do navegador, atualizadas a cada segundo. */
 function useClock() {
-  // Mostra data/hora "ao vivo" — suposição: a referência exibe um timestamp
-  // fixo, aqui deixamos dinâmico para simular atualização em tempo real.
-  const now = new Date()
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   const pad = (n) => String(n).padStart(2, '0')
   return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(
     now.getHours()
@@ -14,7 +20,8 @@ function useClock() {
  * Cabeçalho de página.
  * - `breadcrumb`: trilha curta acima do título (ex.: "OPERAÇÃO / DASHBOARD OEE").
  * - `eyebrow`: rótulo pequeno acima do título (ex.: "MONITORAMENTO DE EFICIÊNCIA FABRIL").
- * - `title`/`subtitle`: mantidos por compatibilidade com as telas existentes.
+ * - `title`/`subtitle`: título e descrição da tela.
+ * - `systemActive`: a API está respondendo (SISTEMA ONLINE) ou não (SISTEMA EM ESPERA).
  */
 export default function PageHeader({ breadcrumb, eyebrow, title, subtitle, right, systemActive = true }) {
   const timestamp = useClock()

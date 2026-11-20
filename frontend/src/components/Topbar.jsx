@@ -21,17 +21,43 @@ const IconSmartMark = () => (
 )
 
 /**
- * Barra superior fixa: identidade, conexão MQTT e controles do sistema.
+ * Selo de conexão: de onde vem o dado que as telas mostram.
+ * online (verde): bancada real; fallback (laranja): replay ou simulação,
+ * usados quando a bancada não responde; offline (vermelho): sem dado.
+ */
+function seloDeConexao(planta, apiErro) {
+  if (apiErro) {
+    return { classe: 'offline', texto: 'API fora do ar', titulo: 'O backend não respondeu à última consulta' }
+  }
+  if (!planta) {
+    return { classe: 'fallback', texto: 'Conectando...', titulo: 'Aguardando a primeira resposta da API' }
+  }
+  if (!planta.conectado) {
+    return { classe: 'offline', texto: 'Bancada sem conexão', titulo: 'Nem a bancada nem o simulador responderam' }
+  }
+  switch (planta.fonte) {
+    case 'BANCADA':
+      return { classe: 'online', texto: 'Bancada conectada', titulo: 'Lendo o /dadosPlanta da Bancada Smart 4.0' }
+    case 'REPLAY':
+      return { classe: 'fallback', texto: 'Replay', titulo: 'Reproduzindo uma execução real gravada no laboratório' }
+    default:
+      return { classe: 'fallback', texto: 'Simulação', titulo: 'Pedidos sintéticos gerados a partir da cronometragem' }
+  }
+}
+
+/**
+ * Barra superior fixa: identidade, fonte do dado e tema.
+ * A fonte (bancada, replay ou simulação) é escolhida ao subir o backend.
  */
 export default function Topbar({
-  mqttConnected = true,
+  planta = null,
+  apiErro = null,
   theme = 'light',
   onToggleTheme,
-  simulationEnabled = true,
-  onToggleSimulation,
   onToggleSidebar,
   mobileOpen = false,
 }) {
+  const selo = seloDeConexao(planta, apiErro)
   return (
     <header className="topbar">
       <div className="topbar-left">
@@ -52,22 +78,13 @@ export default function Topbar({
           </span>
         </div>
 
-        <span className={`mqtt-badge ${mqttConnected ? 'online' : 'offline'}`}>
+        <span className={`mqtt-badge ${selo.classe}`} title={selo.titulo} role="status">
           <span className="mqtt-dot" />
-          {mqttConnected ? 'MQTT conectado' : 'MQTT desconectado'}
+          {selo.texto}
         </span>
       </div>
 
       <div className="topbar-right">
-        <button
-          type="button"
-          className={`simulation-toggle ${simulationEnabled ? 'simulation-on' : 'simulation-off'}`}
-          aria-pressed={simulationEnabled}
-          onClick={onToggleSimulation}
-        >
-          <span className="simulation-toggle-dot" />
-          {simulationEnabled ? 'Desligar simulação' : 'Ativar simulação'}
-        </button>
         <button
           type="button"
           className="theme-toggle"

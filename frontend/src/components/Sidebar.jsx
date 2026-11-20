@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { corDoStatus } from '../services/adapters.js'
 import '../styles/sidebar.css'
 
 // Ícones em SVG inline (sem dependências externas de ícone)
@@ -36,9 +37,14 @@ const IconMenu = () => (
  * - `collapsed`: modo desktop recolhido (64px, somente ícones), controlado
  *   pelo botão hambúrguer embutido na própria sidebar.
  * - `mobileOpen` / `onCloseMobile`: modo off-canvas em telas pequenas.
+ * - `planta` / `apiErro`: estado ao vivo da bancada, para o cartão MÁQUINA
+ *   (Operando, Aguardando, Parada ou Sem conexão).
  */
-export default function Sidebar({ collapsed = false, mobileOpen = false, simulationEnabled = true, onCloseMobile, onToggleSidebar }) {
+export default function Sidebar({ collapsed = false, mobileOpen = false, planta = null, apiErro = null, onCloseMobile, onToggleSidebar }) {
   const location = useLocation()
+  // Sem resposta da API, o status da máquina é desconhecido: sem conexão.
+  const status = apiErro || !planta ? 'SEM_CONEXAO' : planta.status
+  const statusNome = apiErro || !planta ? 'Sem conexão' : planta.statusNome
 
   // Fecha o menu móvel automaticamente ao navegar entre telas
   useEffect(() => {
@@ -100,9 +106,9 @@ export default function Sidebar({ collapsed = false, mobileOpen = false, simulat
           <div className="sidebar-status-text">
             <div className="sidebar-status-label">MÁQUINA</div>
             <div className="sidebar-status-value">SMART 4.0</div>
-            <div className="sidebar-status-online">
-              <span className={`dot ${simulationEnabled ? 'dot-green' : 'dot-orange'}`} />
-              {simulationEnabled ? 'Operando' : 'Pausada'}
+            <div className="sidebar-status-online" role="status">
+              <span className={`dot dot-${corDoStatus(status)}`} />
+              {statusNome}
             </div>
           </div>
         </div>

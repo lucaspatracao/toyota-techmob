@@ -1,119 +1,268 @@
 /**
- * Adapters: convertem o JSON cru retornado pela API (formato dos DTOs do
- * back-end) para o shape que os componentes de tela já esperam (o mesmo
- * shape usado em `src/data/mockData.js`).
+ * Adapters: um por DTO da API (backend/.../dto). Convertem o JSON cru para
+ * o formato das telas, sem inventar campo nenhum:
+ *   - datas ISO-8601 viram `Date`;
+ *   - códigos (estação, origem, status) ganham um rótulo em português;
+ *   - números continuam números (tempos em segundos, percentuais de 0 a 100).
+ *     A formatação para exibição fica nas funções `formatar*` no fim do arquivo.
  *
- * JSON que a API envia hoje (DTOs em backend/.../dto):
- *   GET /api/dashboard/{id}
- *     { maquina: { id, bancadaId, nome, statusAtual },
- *       indicadorAtual: { maquinaId, disponibilidade, performance, qualidade, oee, calculadoEm } | null }
- *   GET /api/indicadores/historico/{id}
- *     [{ maquinaId, disponibilidade, performance, qualidade, oee, calculadoEm }]
- *   GET /api/historico-producao/{id}
- *     [{ maquinaId, timestamp, statusOperacional, pecasBoas, pecasDefeituosas, tempoCicloSegundos }]
- *   GET /api/maquinas
- *     [{ id, bancadaId, nome, statusAtual }]
- *
- * Pendente: só adaptDashboard está ligado à API, e só os 4 indicadores
- * de indicadorAtual existem de fato. Série, resumo e as funções de
- * histórico/máquinas ainda esperam campos que a API não envia
- * (tendenciaOee, resumo24h, pecasRejeitadas, dataHora, status...) e
- * precisam ser ajustadas antes de trocar os mocks pela API.
+ * O contrato de cada endpoint, com exemplos, está em backend/README.md.
  */
 
-// ---------- Dashboard ----------
-// Espera-se algo como:
-// {
-//   oee: 78.4, disponibilidade: 85.7, performance: 81.2, qualidade: 94.8,
-//   tendenciaOee: [{ timestamp, oee }, ...],
-//   resumo24h: { pecasBoas, pecasRejeitadas, tempoCicloMedioSegundos },
-//   producaoPorPeriodo: [{ periodo, pecasBoas, pecasRejeitadas, taxaRejeicao, tempoCicloMedio, oee }, ...]
-// }
+// ---------- Códigos da API e rótulos ----------
+
+/** As três estações da bancada, na ordem em que o pedido passa por elas. */
+export const ESTACOES = [
+  { codigo: 'ESTOQUE', nome: 'Estoque' },
+  { codigo: 'MANIPULACAO', nome: 'Manipulação' },
+  { codigo: 'SEPARACAO', nome: 'Separação' },
+]
+
+const NOME_ESTACAO = Object.fromEntries(ESTACOES.map((e) => [e.codigo, e.nome]))
+
+/** Origem do dado do pedido (cabeçalho X-TechMob-Fonte do simulador). */
+export const ORIGENS = [
+  { codigo: 'BANCADA', nome: 'Bancada' },
+  { codigo: 'REPLAY', nome: 'Replay' },
+  { codigo: 'SINTETICO', nome: 'Simulação' },
+]
+
+const NOME_ORIGEM = Object.fromEntries(ORIGENS.map((o) => [o.codigo, o.nome]))
+
+/** Status da bancada como um todo (maquina.status_operacional). */
+const NOME_STATUS_MAQUINA = {
+  PRODUZINDO: 'Operando',
+  AGUARDANDO: 'Aguardando',
+  PARADO: 'Parada',
+  SEM_CONEXAO: 'Sem conexão',
+}
+
+const NOME_SITUACAO_PEDIDO = {
+  EM_ANDAMENTO: 'Em andamento',
+  CONCLUIDO: 'Concluído',
+  INTERROMPIDO: 'Interrompido',
+}
+
+/**
+ * Cor do ponto de status (classes .dot-* do sidebar.css), igual para a
+ * máquina e para cada estação no Andon: verde operando, cinza aguardando,
+ * vermelho parado, laranja sem conexão.
+ */
+const COR_STATUS = {
+  PRODUZINDO: 'green',
+  OPERANDO: 'green',
+  AGUARDANDO: 'gray',
+  PARADO: 'red',
+  SEM_CONEXAO: 'orange',
+}
+
+export function corDoStatus(status) {
+  return COR_STATUS[status] ?? 'gray'
+}
+
+// ---------- MaquinaDTO ----------
+// { id, bancadaId, nome, statusAtual, ultimaLeituraEm }
+export function adaptMaquina(dto) {
+  if (!dto) return null
+  return {
+    id: dto.id,
+    bancadaId: dto.bancadaId,
+    nome: dto.nome,
+    status: dto.statusAtual,
+    statusNome: NOME_STATUS_MAQUINA[dto.statusAtual] ?? dto.statusAtual,
+    ultimaLeituraEm: paraData(dto.ultimaLeituraEm),
+  }
+}
+
+export function adaptMaquinas(lista) {
+  return (lista ?? []).map(adaptMaquina)
+}
+
+// ---------- IndicadorOEEDTO ----------
+// { maquinaId, pedidoId, disponibilidade, performance, qualidade, oee,
+//   periodoInicio, periodoFim, calculadoEm }
+export function adaptIndicador(dto) {
+  if (!dto) return null
+  return {
+    maquinaId: dto.maquinaId,
+    pedidoId: dto.pedidoId,
+    disponibilidade: dto.disponibilidade,
+    performance: dto.performance,
+    qualidade: dto.qualidade,
+    oee: dto.oee,
+    inicio: paraData(dto.periodoInicio),
+    fim: paraData(dto.periodoFim),
+    calculadoEm: paraData(dto.calculadoEm),
+  }
+}
+
+export function adaptIndicadores(lista) {
+  return (lista ?? []).map(adaptIndicador)
+}
+
+// ---------- StatusPlantaDTO ----------
+// { maquinaId, status, conectado, fonte, operacao,
+//   estacoes: [{ estacao, status, situacao, tempoPadraoS }],
+//   pedidoEmAndamento: { pedidoId, numero, inicio, decorridoS, etapaAtual } | null,
+//   tempoPadraoPedidoS, ultimaLeituraEm }
+export function adaptStatusPlanta(dto) {
+  if (!dto) return null
+  const pedido = dto.pedidoEmAndamento
+  return {
+    maquinaId: dto.maquinaId,
+    status: dto.status,
+    statusNome: NOME_STATUS_MAQUINA[dto.status] ?? dto.status,
+    conectado: dto.conectado,
+    fonte: dto.fonte,
+    fonteNome: dto.fonte ? NOME_ORIGEM[dto.fonte] ?? dto.fonte : null,
+    operacao: dto.operacao,
+    estacoes: (dto.estacoes ?? []).map((e) => ({
+      estacao: e.estacao,
+      nome: NOME_ESTACAO[e.estacao] ?? e.estacao,
+      // texto que a bancada envia (null sem conexão) e a leitura dele
+      status: e.status,
+      situacao: e.situacao,
+      tempoPadraoS: e.tempoPadraoS,
+    })),
+    pedidoEmAndamento: pedido
+      ? {
+          pedidoId: pedido.pedidoId,
+          numero: pedido.numero,
+          inicio: paraData(pedido.inicio),
+          decorridoS: pedido.decorridoS,
+          etapaAtual: pedido.etapaAtual,
+          etapaAtualNome: pedido.etapaAtual ? NOME_ESTACAO[pedido.etapaAtual] ?? pedido.etapaAtual : null,
+        }
+      : null,
+    tempoPadraoPedidoS: dto.tempoPadraoPedidoS,
+    ultimaLeituraEm: paraData(dto.ultimaLeituraEm),
+  }
+}
+
+// ---------- ResumoPedidosDTO ----------
+// { concluidos, aprovados, reprovados, interrompidos, pecasProduzidas,
+//   taxaReprovacao, leadTimeMedioS, tempoParadoTotalS,
+//   disponibilidade, performance, qualidade, oee }
+// Já vem no formato das telas; médias, taxa e OEE vêm null sem pedido concluído.
+export function adaptResumo(dto) {
+  return dto ? { ...dto } : null
+}
+
+// ---------- DashboardResponseDTO ----------
+// { maquina, indicadorAtual, planta, resumoHoje, metaOee }
 export function adaptDashboard(dto) {
   if (!dto) return null
-
-  // O backend só considera a dashboard pronta quando há indicador OEE calculado.
-  const indicador = dto.indicadorAtual ?? (Object.prototype.hasOwnProperty.call(dto, 'indicadorAtual') ? null : dto)
-  if (!indicador) return null
-  if ([indicador.oee, indicador.disponibilidade, indicador.performance, indicador.qualidade].every((value) => value == null)) {
-    return null
-  }
-
   return {
-    oee: indicador.oee,
-    disponibilidade: indicador.disponibilidade,
-    performance: indicador.performance,
-    qualidade: indicador.qualidade,
-    oeeSeries: (dto.tendenciaOee ?? dto.historicoOee ?? []).map((p) => ({
-      time: p.horario ?? p.timestamp ?? p.time,
-      oee: p.oee ?? p.valorOee,
-    })),
-    resumo: {
-      boas: dto.resumo24h?.pecasBoas ?? dto.pecasBoas,
-      rejeitadas: dto.resumo24h?.pecasRejeitadas ?? dto.pecasRejeitadas,
-      tempoCicloMedio: dto.resumo24h?.tempoCicloMedioSegundos ?? dto.tempoCicloMedio,
-    },
-    periodSummary: (dto.producaoPorPeriodo ?? []).map((p) => ({
-      periodo: p.periodo,
-      boas: p.pecasBoas,
-      rejeitadas: p.pecasRejeitadas,
-      taxa: formatPercent(p.taxaRejeicao),
-      ciclo: formatSeconds(p.tempoCicloMedio),
-      oee: formatPercent(p.oee),
-    })),
+    maquina: adaptMaquina(dto.maquina),
+    indicadorAtual: adaptIndicador(dto.indicadorAtual),
+    planta: adaptStatusPlanta(dto.planta),
+    resumoHoje: adaptResumo(dto.resumoHoje),
+    metaOee: dto.metaOee,
   }
 }
 
-// ---------- Histórico de Produção ----------
-// Espera-se uma lista de:
-// { dataHora, periodoInicio, periodoFim, turno, pecasBoas, pecasRejeitadas,
-//   taxaRejeicao, tempoCicloMedio, oeeMedio, status }
-export function adaptHistorico(list) {
-  return (list ?? []).map((h) => ({
-    status: mapStatus(h.status), // confirmar: back-end pode não enviar "status" — nesse caso, calcular no front a partir da taxa de rejeição
-    dataHora: h.dataHora ?? `${h.periodoInicio} - ${h.periodoFim}`,
-    periodo: h.periodo ?? `${h.periodoInicio} - ${h.periodoFim}`,
-    turno: h.turno,
-    boas: h.pecasBoas,
-    rejeitadas: h.pecasRejeitadas,
-    taxa: formatPercent(h.taxaRejeicao),
-    ciclo: formatSeconds(h.tempoCicloMedio),
-    oee: formatPercent(h.oeeMedio ?? h.oee),
-  }))
+// ---------- PedidoDTO ----------
+// { id, maquinaId, numero, origem, situacao, inicio, fim, leadTimeS,
+//   tempoParadoS, tempoPadraoS, reprovado, pecasBoas, pecasDefeituosas,
+//   duracaoEtapasS: { ESTOQUE, MANIPULACAO, SEPARACAO },
+//   disponibilidade, performance, qualidade, oee }
+// D, P, Q e OEE vêm null em pedido em andamento ou interrompido.
+export function adaptPedido(dto) {
+  if (!dto) return null
+  return {
+    id: dto.id,
+    maquinaId: dto.maquinaId,
+    numero: dto.numero,
+    origem: dto.origem,
+    origemNome: NOME_ORIGEM[dto.origem] ?? dto.origem,
+    situacao: dto.situacao,
+    situacaoNome: NOME_SITUACAO_PEDIDO[dto.situacao] ?? dto.situacao,
+    inicio: paraData(dto.inicio),
+    fim: paraData(dto.fim),
+    leadTimeS: dto.leadTimeS,
+    tempoParadoS: dto.tempoParadoS,
+    tempoPadraoS: dto.tempoPadraoS,
+    reprovado: dto.reprovado,
+    pecasBoas: dto.pecasBoas,
+    pecasDefeituosas: dto.pecasDefeituosas,
+    duracaoEtapasS: dto.duracaoEtapasS ?? {},
+    disponibilidade: dto.disponibilidade,
+    performance: dto.performance,
+    qualidade: dto.qualidade,
+    oee: dto.oee,
+  }
 }
 
-// ---------- Indicadores OEE (série histórica) ----------
-// Espera-se uma lista de: { timestamp, oee, disponibilidade, performance, qualidade }
-export function adaptIndicadoresOee(list) {
-  return (list ?? []).map((i) => ({
-    time: i.timestamp ?? i.horario,
-    oee: i.oee,
-  }))
+export function adaptPedidos(lista) {
+  return (lista ?? []).map(adaptPedido)
 }
 
-// ---------- Máquinas ----------
-// Espera-se: { id, nome, status } — usado no card da Sidebar.
-export function adaptMaquinas(list) {
-  return (list ?? []).map((m) => ({
-    id: m.id,
-    nome: m.nome ?? m.name,
-    status: m.status ?? (m.operando ? 'Operando' : 'Parada'),
-  }))
+// ---------- EtapaPedidoDTO ----------
+// { estacao, inicio, fim, duracaoS, tempoParadoS, tempoPadraoS }
+export function adaptEtapa(dto) {
+  if (!dto) return null
+  return {
+    estacao: dto.estacao,
+    nome: NOME_ESTACAO[dto.estacao] ?? dto.estacao,
+    inicio: paraData(dto.inicio),
+    fim: paraData(dto.fim),
+    duracaoS: dto.duracaoS,
+    tempoParadoS: dto.tempoParadoS,
+    tempoPadraoS: dto.tempoPadraoS,
+  }
 }
 
-// ---------- Helpers ----------
-function formatPercent(v) {
-  if (v === undefined || v === null) return '-'
-  return `${v.toFixed(1).replace('.', ',')}%`
+// ---------- PedidoDetalheDTO ----------
+// { pedido: PedidoDTO, etapas: [EtapaPedidoDTO] (em ordem de início) }
+export function adaptPedidoDetalhe(dto) {
+  if (!dto) return null
+  return {
+    pedido: adaptPedido(dto.pedido),
+    etapas: (dto.etapas ?? []).map(adaptEtapa),
+  }
 }
-function formatSeconds(v) {
-  if (v === undefined || v === null) return '-'
-  return `${v.toFixed(2).replace('.', ',')} s`
+
+// ---------- Formatação para exibição (pt-BR) ----------
+
+/** 80 -> "80,0%"; nulo -> "-". */
+export function formatarPercentual(valor, casas = 1) {
+  if (valor === undefined || valor === null) return '-'
+  return `${valor.toFixed(casas).replace('.', ',')}%`
 }
-function mapStatus(status) {
-  if (!status) return 'green'
-  const s = status.toLowerCase()
-  if (s.includes('crit') || s.includes('alto')) return 'red'
-  if (s.includes('atenc') || s.includes('médio') || s.includes('medio')) return 'orange'
-  return 'green'
+
+/** Segundos para texto: 47.3 -> "47 s"; 125 -> "2 min 5 s"; nulo -> "-". */
+export function formatarDuracao(segundos) {
+  if (segundos === undefined || segundos === null) return '-'
+  const total = Math.round(segundos)
+  if (total < 60) return `${total} s`
+  const minutos = Math.floor(total / 60)
+  const resto = total % 60
+  if (minutos < 60) return resto ? `${minutos} min ${resto} s` : `${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  return minutos % 60 ? `${horas} h ${minutos % 60} min` : `${horas} h`
+}
+
+const doisDigitos = (n) => String(n).padStart(2, '0')
+
+/** Date -> "17/11/2026" (fuso do navegador). */
+export function formatarData(data) {
+  if (!data) return '-'
+  return `${doisDigitos(data.getDate())}/${doisDigitos(data.getMonth() + 1)}/${data.getFullYear()}`
+}
+
+/** Date -> "10:05:12"; sem segundos: "10:05". */
+export function formatarHora(data, { segundos = true } = {}) {
+  if (!data) return '-'
+  const hora = `${doisDigitos(data.getHours())}:${doisDigitos(data.getMinutes())}`
+  return segundos ? `${hora}:${doisDigitos(data.getSeconds())}` : hora
+}
+
+/** Date -> "17/11/2026 10:05"; com segundos: "17/11/2026 10:05:12". */
+export function formatarDataHora(data, { segundos = false } = {}) {
+  if (!data) return '-'
+  return `${formatarData(data)} ${formatarHora(data, { segundos })}`
+}
+
+function paraData(iso) {
+  return iso ? new Date(iso) : null
 }
