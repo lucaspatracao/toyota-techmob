@@ -19,10 +19,10 @@ node-red/lib/
 venv/
 __pycache__/
 *.pyc
-# CSVs gerados em execução (o exemplo continua versionado)
-data/dados_producao.csv
-data/dados_simulados_*.csv
-resultado_oee.csv
+.pytest_cache/
+# Resultados da análise (as gravações em data/gravacoes/ são versionadas:
+# são a evidência do projeto e não têm dado pessoal)
+data/resultados/
 
 # IDE
 .vscode/

@@ -1,3 +1,3 @@
+# Só a análise (oee_calculator.py e analisar_cronometragem.py) precisa de pacote.
+# coletor_planta.py e simulador_planta.py usam só a biblioteca padrão.
 pandas>=2.0
-SQLAlchemy>=2.0
-PyMySQL>=1.1.0
