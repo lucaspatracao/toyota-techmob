@@ -1,6 +1,6 @@
 # TechMob 4.0 — Plano de alinhamento com a Bancada Smart 4.0
 
-Atualizado em 17/11/2026 · Equipe TechMob 4.0
+Atualizado em 19/11/2026 · Equipe TechMob 4.0
 
 > Documento de referência da equipe. Cada parte da execução tem responsável, branch e PR próprios (seção **Ordem de execução**).
 
@@ -20,8 +20,18 @@ Decisões já tomadas:
 - **OEE por pedido**, não por turno. A fórmula é a da fábrica; muda só a janela.
 - **Node-RED da bancada é só leitura.** Nada é instalado ou alterado nele.
 - **O OEE é calculado em um lugar só: o backend.** O Python sai do caminho ao vivo e fica com coleta, simulação e análise.
-- **Na banca, o dashboard roda em replay** de uma execução real gravada no laboratório, porque a bancada não sai de lá.
+- **Na banca, o dashboard roda com o simulador da bancada** (decisão de 19/11; antes previa o replay de uma gravação real, ver a atualização abaixo).
 - **O que sai do projeto:** o flow MQTT→CSV, o broker Aedes, a simulação local do frontend (simulation.js, mockData.js) e o cálculo de 8 h fixas.
+
+### Atualização de 19/11/2026: sem nova ida ao laboratório
+
+Por orientação do docente, não haverá nova ida ao laboratório. A base do projeto passa a ser o que foi levantado em 14/09/2026 e a cronometragem da equipe:
+
+- **Dado de referência:** o JSON do `/dadosPlanta` (bancada parada depois de 1 pedido), o flow do Node-RED, o CLP ET 200SP no TIA Portal e as fotos em `docs/img/`.
+- **Fonte do sistema:** o simulador da bancada (`simulador_planta.py`, modo sintético), que responde o mesmo JSON com os tempos da cronometragem. É a fonte padrão e deixa de aparecer como alerta no dashboard. A leitura da bancada real continua no código (basta trocar a `PLANTA_URL`).
+- **Valores definitivos:** tempo padrão de 20 s (estoque), 35 s (manipulação) e 25 s (separação), 80 s por pedido; meta de OEE de 75%; textos de status `AGUARDANDO` (lido na bancada), `PRODUZINDO` e `PARADO` (os do simulador).
+- **Sem efeito:** o checklist do laboratório, as gravações reais de 3 a 5 pedidos e o replay delas na banca. Coletor e replay continuam no código.
+- **Execução:** a Parte 11 recebe as fotos e a nova Parte 14 aplica a decisão (dashboard, comentários de configuração, READMEs e este plano).
 
 ## Nova arquitetura
 
@@ -289,8 +299,9 @@ Cada parte é uma branch e um PR, no nome de quem é responsável por ela. As br
 | 11 | Otávio | `docs/node-red-bancada` | `node-red/README.md` e `node-red/fotos/` (Node-RED da bancada, somente leitura) | Leitura |
 | 12 | Lucas | `chore/remove-fluxo-antigo` | Remoção do fluxo antigo (Node-RED local, `simulador_oee.py`, CSV de exemplo, mocks do frontend) | `mvnw test`, `npm run build`, `pytest` |
 | 13 | Nykolas | `docs/readmes-alinhamento` | `README.md` da raiz, `backend/README.md`, `frontend/README.md` e `data/README.md` | Leitura |
+| 14 | Lucas | `feat/simulacao-como-fonte` | Decisão de 19/11: simulador como fonte padrão (sem alerta no dashboard), valores definitivos e documentação atualizada | `mvnw test`, `npm run build`, `pytest` |
 
-Fora do código: gravações reais no laboratório (todos, quando a bancada estiver disponível), slides e vídeos.
+Fora do código: slides e vídeos. (As gravações reais no laboratório foram canceladas em 19/11.)
 
 Regras para cada parte:
 
@@ -299,9 +310,11 @@ Regras para cada parte:
 3. Commits pequenos, em português, no padrão `tipo(escopo): descrição` (ex.: `feat(coleta): detecta pedidos pelas transições do /dadosPlanta`), no nome e e-mail do responsável pela parte.
 4. O PR descreve o que mudou e como testar, e precisa da revisão de pelo menos uma pessoa de outra parte. O responsável pela parte revisa e aprova o próprio conteúdo antes do merge.
 
-Valores provisórios até a ida ao laboratório: tempo padrão de 80 s por pedido (20 s estoque, 35 s manipulação, 25 s separação, em `ciclo_padrao.json` e no seed) e meta de OEE de 75% (variável `META_OEE`). Os textos de status além de `AGUARDANDO` ficam configuráveis.
+Valores do projeto (definitivos desde 19/11): tempo padrão de 80 s por pedido (20 s estoque, 35 s manipulação, 25 s separação, em `ciclo_padrao.json` e no seed) e meta de OEE de 75% (variável `META_OEE`). Os textos de status além de `AGUARDANDO` são os do simulador e ficam configuráveis.
 
 ## Checklist do dia no laboratório
+
+> **Cancelado em 19/11/2026:** não haverá nova ida ao laboratório (ver a atualização no início). Mantido como registro.
 
 O objetivo da visita é sair com gravações reais de 3 a 5 pedidos, sem alterar nada na bancada. O JSON só existe com a bancada ligada.
 
@@ -328,8 +341,9 @@ O objetivo da visita é sair com gravações reais de 3 a 5 pedidos, sem alterar
 | Qualidade só por pedido (aprovado ou reprovado) | Pedido reprovado tem OEE 0% | Explicar na apresentação; refinar se a bancada informar reprovação por peça |
 | Calendário (conclusão em dezembro de 2026) | Falta de tempo | Itens opcionais ficam por último: tabela leitura_planta e detalhe do pedido no Histórico |
 
-Pendências abertas:
+Pendências abertas (atualizadas em 19/11):
 
-- Tempos da cronometragem, etapa por etapa (para o seed e o ciclo_padrao.json).
-- Data da próxima ida ao laboratório e data da banca.
-- Valor da meta de OEE (o 75% atual estava fixo no código; confirmar com a equipe).
+- ~~Tempos da cronometragem~~: definidos (20/35/25 s, 80 s por pedido).
+- ~~Data da próxima ida ao laboratório~~: cancelada. Falta só a data da banca.
+- ~~Valor da meta de OEE~~: mantida em 75%.
+- Slides e vídeos: o material passa a ser o dashboard rodando com o simulador e as fotos de 14/09. Ajustar os slides que citavam gravação real (7 – OEE, 10 – Cenário e 12 – Conclusão).
