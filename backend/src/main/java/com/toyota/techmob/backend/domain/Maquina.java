@@ -29,14 +29,20 @@ public class Maquina {
     @Column(name = "nome", nullable = false, length = 120)
     private String nome;
 
+    /** AGUARDANDO, PRODUZINDO, PARADO ou SEM_CONEXAO. */
     @Column(name = "status_operacional", nullable = false, length = 30)
     private String statusOperacional;
 
-    @Column(name = "capacidade_teorica", nullable = false, precision = 10, scale = 2)
-    private BigDecimal capacidadeTeorica;
+    /** Soma da cronometragem das etapas de um pedido, em segundos. */
+    @Column(name = "tempo_padrao_pedido_s", nullable = false, precision = 10, scale = 3)
+    private BigDecimal tempoPadraoPedidoS;
 
-    @Column(name = "tempo_planejado_producao_s", nullable = false, precision = 12, scale = 2)
-    private BigDecimal tempoPlanejadoProducaoS;
+    @Column(name = "pecas_por_pedido", nullable = false)
+    private Integer pecasPorPedido;
+
+    /** Última leitura bem-sucedida do /dadosPlanta (nula antes da primeira). */
+    @Column(name = "ultima_leitura_em")
+    private OffsetDateTime ultimaLeituraEm;
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;

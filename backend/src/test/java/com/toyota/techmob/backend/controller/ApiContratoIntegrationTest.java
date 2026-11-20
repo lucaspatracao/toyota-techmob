@@ -15,12 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import com.toyota.techmob.backend.domain.HistoricoProducao;
 import com.toyota.techmob.backend.domain.IndicadorOEE;
 import com.toyota.techmob.backend.domain.Maquina;
-import com.toyota.techmob.backend.repository.HistoricoProducaoRepository;
+import com.toyota.techmob.backend.domain.OrigemPedido;
+import com.toyota.techmob.backend.domain.Pedido;
+import com.toyota.techmob.backend.domain.SituacaoPedido;
 import com.toyota.techmob.backend.repository.IndicadorOEERepository;
 import com.toyota.techmob.backend.repository.MaquinaRepository;
+import com.toyota.techmob.backend.repository.PedidoRepository;
 
 /**
  * Teste de integração: sobe a aplicação inteira com um banco H2 em memória
@@ -52,17 +54,19 @@ class ApiContratoIntegrationTest {
     private IndicadorOEERepository indicadorOEERepository;
 
     @Autowired
-    private HistoricoProducaoRepository historicoProducaoRepository;
+    private PedidoRepository pedidoRepository;
 
     private final HttpClient http = HttpClient.newHttpClient();
 
     private Long maquinaComDadosId;
     private Long maquinaSemDadosId;
+    private Long pedido1Id;
+    private Long pedido2Id;
 
     @BeforeEach
     void popularBanco() {
-        historicoProducaoRepository.deleteAll();
         indicadorOEERepository.deleteAll();
+        pedidoRepository.deleteAll();
         maquinaRepository.deleteAll();
 
         OffsetDateTime t0 = OffsetDateTime.parse("2026-08-17T08:00:00Z");
@@ -71,8 +75,8 @@ class ApiContratoIntegrationTest {
                 .identificadorBancada("BANCADA_SMART_01")
                 .nome("Bancada Smart 4.0")
                 .statusOperacional("EM_PRODUCAO")
-                .capacidadeTeorica(new BigDecimal("0.10"))
-                .tempoPlanejadoProducaoS(new BigDecimal("28800.00"))
+                .tempoPadraoPedidoS(new BigDecimal("80.000"))
+                .pecasPorPedido(3)
                 .criadoEm(t0)
                 .atualizadoEm(t0)
                 .build());
@@ -82,38 +86,50 @@ class ApiContratoIntegrationTest {
                 .identificadorBancada("BANCADA_SMART_02")
                 .nome("Bancada Reserva")
                 .statusOperacional("PARADA")
-                .capacidadeTeorica(new BigDecimal("0.10"))
-                .tempoPlanejadoProducaoS(new BigDecimal("28800.00"))
+                .tempoPadraoPedidoS(new BigDecimal("80.000"))
+                .pecasPorPedido(3)
                 .criadoEm(t0)
                 .atualizadoEm(t0)
                 .build()).getId();
 
-        indicadorOEERepository.save(indicador(bancada, "2026-08-17T08:00:00Z", "2026-08-17T09:00:00Z", "70.000"));
-        indicadorOEERepository.save(indicador(bancada, "2026-08-17T09:00:00Z", "2026-08-17T10:00:00Z", "74.600"));
-
-        historicoProducaoRepository.save(HistoricoProducao.builder()
-                .maquina(bancada)
-                .timestamp(OffsetDateTime.parse("2026-08-17T08:00:10Z"))
-                .statusOperacional("EM_PRODUCAO")
-                .pecasBoas(1)
-                .pecasDefeituosas(0)
-                .tempoCicloSegundos(new BigDecimal("9.800"))
-                .criadoEm(t0)
-                .build());
+        Pedido pedido1 = pedidoRepository.save(pedido(bancada, 1, "2026-08-17T08:00:00Z", "2026-08-17T09:00:00Z"));
+        Pedido pedido2 = pedidoRepository.save(pedido(bancada, 2, "2026-08-17T09:00:00Z", "2026-08-17T10:00:00Z"));
+        pedido1Id = pedido1.getId();
+        pedido2Id = pedido2.getId();
+        indicadorOEERepository.save(indicador(pedido1, "70.000"));
+        indicadorOEERepository.save(indicador(pedido2, "74.600"));
     }
 
-    private IndicadorOEE indicador(Maquina maquina, String inicio, String fim, String oee) {
-        return IndicadorOEE.builder()
+    private Pedido pedido(Maquina maquina, int numero, String inicio, String fim) {
+        return Pedido.builder()
                 .maquina(maquina)
-                .periodoInicio(OffsetDateTime.parse(inicio))
-                .periodoFim(OffsetDateTime.parse(fim))
+                .numero(numero)
+                .origem(OrigemPedido.SINTETICO)
+                .situacao(SituacaoPedido.CONCLUIDO)
+                .inicio(OffsetDateTime.parse(inicio))
+                .fim(OffsetDateTime.parse(fim))
+                .leadTimeS(new BigDecimal("3600.000"))
+                .tempoParadoS(BigDecimal.ZERO)
+                .reprovado(false)
+                .pecasBoas(3)
+                .pecasDefeituosas(0)
+                .criadoEm(OffsetDateTime.parse(fim))
+                .build();
+    }
+
+    private IndicadorOEE indicador(Pedido pedido, String oee) {
+        return IndicadorOEE.builder()
+                .maquina(pedido.getMaquina())
+                .pedido(pedido)
+                .periodoInicio(pedido.getInicio())
+                .periodoFim(pedido.getFim())
                 .disponibilidade(new BigDecimal("90.000"))
                 .performance(new BigDecimal("85.000"))
                 .qualidade(new BigDecimal("97.500"))
                 .oee(new BigDecimal(oee))
                 .pecasBoas(39)
                 .pecasDefeituosas(1)
-                .criadoEm(OffsetDateTime.parse(fim))
+                .criadoEm(pedido.getFim())
                 .build();
     }
 
@@ -128,8 +144,8 @@ class ApiContratoIntegrationTest {
 
         assertThat(resp.statusCode()).isEqualTo(200);
         assertThat(resp.body()).isEqualTo("["
-                + "{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\"},"
-                + "{\"id\":" + maquinaSemDadosId + ",\"bancadaId\":\"BANCADA_SMART_02\",\"nome\":\"Bancada Reserva\",\"statusAtual\":\"PARADA\"}"
+                + "{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\",\"ultimaLeituraEm\":null},"
+                + "{\"id\":" + maquinaSemDadosId + ",\"bancadaId\":\"BANCADA_SMART_02\",\"nome\":\"Bancada Reserva\",\"statusAtual\":\"PARADA\",\"ultimaLeituraEm\":null}"
                 + "]");
     }
 
@@ -139,9 +155,11 @@ class ApiContratoIntegrationTest {
 
         assertThat(resp.statusCode()).isEqualTo(200);
         assertThat(resp.body()).isEqualTo("{"
-                + "\"maquina\":{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\"},"
-                + "\"indicadorAtual\":{\"maquinaId\":" + maquinaComDadosId + ",\"disponibilidade\":90.0,\"performance\":85.0,"
-                + "\"qualidade\":97.5,\"oee\":74.6,\"calculadoEm\":\"2026-08-17T10:00:00Z\"}"
+                + "\"maquina\":{\"id\":" + maquinaComDadosId + ",\"bancadaId\":\"BANCADA_SMART_01\",\"nome\":\"Bancada Smart 4.0\",\"statusAtual\":\"EM_PRODUCAO\",\"ultimaLeituraEm\":null},"
+                + "\"indicadorAtual\":{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido2Id + ",\"disponibilidade\":90.0,\"performance\":85.0,"
+                + "\"qualidade\":97.5,\"oee\":74.6,\"periodoInicio\":\"2026-08-17T09:00:00Z\",\"periodoFim\":\"2026-08-17T10:00:00Z\","
+                + "\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
+                + "\"planta\":null,\"resumoHoje\":null,\"metaOee\":null"
                 + "}");
     }
 
@@ -170,19 +188,10 @@ class ApiContratoIntegrationTest {
 
         assertThat(resp.statusCode()).isEqualTo(200);
         assertThat(resp.body()).isEqualTo("["
-                + "{\"maquinaId\":" + maquinaComDadosId + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":74.6,\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
-                + "{\"maquinaId\":" + maquinaComDadosId + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":70.0,\"calculadoEm\":\"2026-08-17T09:00:00Z\"}"
-                + "]");
-    }
-
-    @Test
-    void historicoProducao_retornaContratoEsperado() throws Exception {
-        HttpResponse<String> resp = get("/api/historico-producao/" + maquinaComDadosId);
-
-        assertThat(resp.statusCode()).isEqualTo(200);
-        assertThat(resp.body()).isEqualTo("["
-                + "{\"maquinaId\":" + maquinaComDadosId + ",\"timestamp\":\"2026-08-17T08:00:10Z\",\"statusOperacional\":\"EM_PRODUCAO\","
-                + "\"pecasBoas\":1,\"pecasDefeituosas\":0,\"tempoCicloSegundos\":9.800}"
+                + "{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido2Id + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":74.6,"
+                + "\"periodoInicio\":\"2026-08-17T09:00:00Z\",\"periodoFim\":\"2026-08-17T10:00:00Z\",\"calculadoEm\":\"2026-08-17T10:00:00Z\"},"
+                + "{\"maquinaId\":" + maquinaComDadosId + ",\"pedidoId\":" + pedido1Id + ",\"disponibilidade\":90.0,\"performance\":85.0,\"qualidade\":97.5,\"oee\":70.0,"
+                + "\"periodoInicio\":\"2026-08-17T08:00:00Z\",\"periodoFim\":\"2026-08-17T09:00:00Z\",\"calculadoEm\":\"2026-08-17T09:00:00Z\"}"
                 + "]");
     }
 
