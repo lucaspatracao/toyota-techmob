@@ -237,13 +237,19 @@
   color: var(--text-primary);
   margin-top: 2px;
 }
-.dash-trend-svg {
-  width: 100%;
-  height: auto;
-  min-height: 180px;
+/* A área ocupa o espaço livre do painel; o SVG é desenhado no tamanho dela
+   (em px), sem esticar, para as bolinhas ficarem redondas e nítidas. */
+.dash-trend-area {
+  position: relative;
   flex: 1;
+  min-height: 180px;
   margin-top: 16px;
+}
+.dash-trend-svg {
+  position: absolute;
+  inset: 0;
   display: block;
+  overflow: visible;
 }
 .dash-trend-legend {
   display: inline-flex;

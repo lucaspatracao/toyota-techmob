@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PageHeader from '../components/PageHeader.jsx'
 import Panel from '../components/Panel.jsx'
 import { ErrorState, LoadingState } from '../components/StateFeedback.jsx'
@@ -43,42 +43,124 @@ function KpiCard({ label, value, trend, caption, featured, progress, refreshKey,
   )
 }
 
-/** OEE pedido a pedido (0 a 100), com a meta tracejada. */
+/** Folga interna do gráfico, em px: as bolinhas das pontas e de 0% e 100% não são cortadas. */
+const MARGEM_GRAFICO = { topo: 10, base: 10, esquerda: 8, direita: 8 }
+
+/** Tamanho real (px) de um elemento, atualizado quando ele muda de tamanho. */
+function useTamanho() {
+  const ref = useRef(null)
+  const [tamanho, setTamanho] = useState({ largura: 0, altura: 0 })
+
+  useEffect(() => {
+    const elemento = ref.current
+    if (!elemento) return undefined
+    const observador = new ResizeObserver(([entrada]) => {
+      const { width, height } = entrada.contentRect
+      setTamanho({ largura: Math.round(width), altura: Math.round(height) })
+    })
+    observador.observe(elemento)
+    return () => observador.disconnect()
+  }, [])
+
+  return [ref, tamanho]
+}
+
+/**
+ * Curva suave que passa por todos os pontos sem ultrapassá-los (cúbica
+ * monótona, Fritsch–Carlson): entre dois pedidos a linha nunca vai abaixo
+ * de 0% nem acima de 100%.
+ */
+function curvaMonotona(pontos) {
+  const n = pontos.length
+  if (n < 2) return n ? `M ${pontos[0][0]} ${pontos[0][1]}` : ''
+  const dx = []
+  const inclinacao = []
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = pontos[i + 1][0] - pontos[i][0]
+    inclinacao[i] = (pontos[i + 1][1] - pontos[i][1]) / dx[i]
+  }
+  const tangente = [inclinacao[0]]
+  for (let i = 1; i < n - 1; i++) {
+    tangente[i] = inclinacao[i - 1] * inclinacao[i] <= 0 ? 0 : (inclinacao[i - 1] + inclinacao[i]) / 2
+  }
+  tangente[n - 1] = inclinacao[n - 2]
+  for (let i = 0; i < n - 1; i++) {
+    if (inclinacao[i] === 0) {
+      tangente[i] = 0
+      tangente[i + 1] = 0
+      continue
+    }
+    const a = tangente[i] / inclinacao[i]
+    const b = tangente[i + 1] / inclinacao[i]
+    const soma = a * a + b * b
+    if (soma > 9) {
+      const k = 3 / Math.sqrt(soma)
+      tangente[i] = k * a * inclinacao[i]
+      tangente[i + 1] = k * b * inclinacao[i]
+    }
+  }
+  const f = (v) => v.toFixed(1)
+  let caminho = `M ${f(pontos[0][0])} ${f(pontos[0][1])}`
+  for (let i = 0; i < n - 1; i++) {
+    const terco = dx[i] / 3
+    const [x0, y0] = pontos[i]
+    const [x1, y1] = pontos[i + 1]
+    caminho += ` C ${f(x0 + terco)} ${f(y0 + tangente[i] * terco)} ${f(x1 - terco)} ${f(y1 - tangente[i + 1] * terco)} ${f(x1)} ${f(y1)}`
+  }
+  return caminho
+}
+
+/**
+ * OEE pedido a pedido (0 a 100), com a meta tracejada. O SVG é desenhado no
+ * tamanho real do painel (sem esticar), então as bolinhas ficam redondas e
+ * nítidas e a linha tem a mesma espessura em todo o traçado.
+ */
 function TrendChart({ points, meta }) {
-  const width = 640
-  const height = 190
-  const y = (valor) => height - (valor / 100) * height
-  const step = points.length > 1 ? width / (points.length - 1) : width
-  const coords = points.map((value, index) => [index * step, y(value)])
-  const linePath = coords.reduce((path, point, index) => {
-    if (!index) return `M ${point[0].toFixed(1)} ${point[1].toFixed(1)}`
-    const previous = coords[index - 1]
-    const middleX = (previous[0] + point[0]) / 2
-    return `${path} Q ${previous[0].toFixed(1)} ${previous[1].toFixed(1)} ${middleX.toFixed(1)} ${(previous[1] + point[1]) / 2} T ${point[0].toFixed(1)} ${point[1].toFixed(1)}`
-  }, '')
-  const areaPath = `${linePath} L ${coords.at(-1)[0]} ${height} L 0 ${height} Z`
+  const [ref, { largura, altura }] = useTamanho()
+  const m = MARGEM_GRAFICO
+  const areaUtilX = Math.max(1, largura - m.esquerda - m.direita)
+  const areaUtilY = Math.max(1, altura - m.topo - m.base)
+  const y = (valor) => m.topo + (1 - Math.min(100, Math.max(0, valor)) / 100) * areaUtilY
+  const x = (indice) => (points.length > 1 ? m.esquerda + (indice * areaUtilX) / (points.length - 1) : m.esquerda + areaUtilX / 2)
+  const coords = points.map((valor, indice) => [x(indice), y(valor)])
+  const linha = curvaMonotona(coords)
+  const base = altura - m.base
+  const area = coords.length > 1 ? `${linha} L ${coords.at(-1)[0].toFixed(1)} ${base} L ${coords[0][0].toFixed(1)} ${base} Z` : ''
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="dash-trend-svg" preserveAspectRatio="none" role="img"
-      aria-label={`OEE dos últimos ${points.length} pedidos`}>
-      <defs>
-        <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--content-accent)" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="var(--content-accent)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {meta != null && (
-        <line x1="0" x2={width} y1={y(meta)} y2={y(meta)} stroke="var(--text-tertiary)" strokeWidth="1.5"
-          strokeDasharray="6 5" vectorEffect="non-scaling-stroke" />
+    <div ref={ref} className="dash-trend-area">
+      {largura > 0 && altura > 0 && (
+        <svg width={largura} height={altura} viewBox={`0 0 ${largura} ${altura}`} className="dash-trend-svg"
+          role="img" aria-label={`OEE dos últimos ${points.length} pedidos`}>
+          <defs>
+            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--content-accent)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--content-accent)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {meta != null && (
+            <line x1={m.esquerda} x2={largura - m.direita} y1={y(meta)} y2={y(meta)}
+              stroke="var(--text-tertiary)" strokeWidth="1.5" strokeDasharray="6 5" />
+          )}
+          {area && <path d={area} fill="url(#trendFill)" />}
+          {coords.length > 1 && (
+            <path d={linha} fill="none" stroke="var(--content-accent)" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round" />
+          )}
+          {coords.map(([cx, cy], indice) => {
+            const ultimo = indice === coords.length - 1
+            const abaixo = meta != null && points[indice] < meta
+            return (
+              <circle key={indice} cx={cx} cy={cy} r={ultimo ? 5 : 3.5}
+                fill={abaixo ? 'var(--accent-red)' : 'var(--content-accent)'}
+                stroke="var(--bg-card)" strokeWidth="2">
+                <title>{`OEE ${formatarPercentual(points[indice])}${abaixo ? ' (abaixo da meta)' : ''}`}</title>
+              </circle>
+            )
+          })}
+        </svg>
       )}
-      <path d={areaPath} fill="url(#trendFill)" />
-      <path d={linePath} fill="none" stroke="var(--content-accent)" strokeWidth="2.5" strokeLinecap="round" />
-      {coords.map(([x, cy], index) => (
-        <circle key={`${x}-${index}`} cx={x} cy={cy} r={index === coords.length - 1 ? 4 : 2.5}
-          fill={meta != null && points[index] < meta ? 'var(--accent-red)' : 'var(--content-accent)'}
-          stroke="var(--bg-card)" strokeWidth="2" />
-      ))}
-    </svg>
+    </div>
   )
 }
 
