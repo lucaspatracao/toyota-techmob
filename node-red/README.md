@@ -26,9 +26,11 @@ O JSON só existe com a bancada ligada. Para conferir, abra o endereço no naveg
 
 | Aba | O que faz | Uso no TechMob |
 |---|---|---|
-| `API_Dados_Planta` | `GET /dadosPlanta` → função `leDadosPlanta` → resposta HTTP com o JSON abaixo | É a única coisa que o TechMob consulta |
-| `CLP_MQTT` | CLP → funções de status → envio por MQTT ao TagoIO (nó `CLP_TAGO`) | Nenhum. O nó fica em "connecting": a nuvem não é acessível do laboratório |
-| `ServidorSiemens` | Aba do flow ligada ao CLP Siemens (função exata a confirmar na próxima visita) | Nenhum |
+| `API_Dados_Planta` | `[get] /dadosPlanta` → função `leDadosPlanta` → nó `http` (resposta) com o JSON abaixo | É a única coisa que o TechMob consulta |
+| `CLP_MQTT` | Nó `CLP` (online) → `function gerar dados` → uma função por variável (`statusEstoque`, `statusManipulacao`, `statusProcesso`, `statusGeral`, `produzindo`, `aguardando`, `TotalPedidos`, `TotalReprovados`, `Pedidos15min`, `Falhas`, `Qualidade`, `Temperatura`, `Umidade`) → envio por MQTT ao TagoIO (nó `CLP_TAGO`) | Nenhum. O `CLP_TAGO` fica em "connecting": a nuvem não é acessível do laboratório |
+| `ServidorSiemens` | Aba do flow ligada ao CLP Siemens; o conteúdo não foi fotografado | Nenhum |
+
+A função `leDadosPlanta` monta o JSON concatenando texto com `global.get(...)` de cada variável. As linhas de `falhas` e `Qualidade` estão comentadas, por isso esses campos não aparecem no `/dadosPlanta`.
 
 ### Por que consultar e não assinar MQTT
 
@@ -36,7 +38,7 @@ O único MQTT da bancada é de **saída**, para o TagoIO. Para o Node-RED public
 
 ## O JSON
 
-Lido em `localhost:1880/dadosPlanta` em 14/09, com a bancada parada:
+Lido em `localhost:1880/dadosPlanta` em 14/09/2026, com a bancada parada depois de 1 pedido ([foto](../docs/img/json-dadosplanta-navegador.jpg)):
 
 ```json
 {
@@ -81,11 +83,23 @@ Se o firewall do notebook do laboratório bloquear o acesso de outro computador,
 
 | Situação | Efeito | Como o TechMob trata |
 |---|---|---|
-| Variável global ainda indefinida no Node-RED (bancada recém-ligada) | O `/dadosPlanta` devolve JSON inválido | O backend conta como falha de leitura; o coletor guarda o texto bruto |
+| Variável global ainda indefinida no Node-RED (bancada recém-ligada) | Como a `leDadosPlanta` concatena texto, o `/dadosPlanta` devolve JSON inválido (ex.: `"operacao_estoque":"undefined"` ou `"aguardando":undefined`) | O backend conta como falha de leitura; o coletor guarda o texto bruto |
 | Contadores reiniciam ("a bancada guarda só o primeiro pedido") | `total_pedidos` não serve para contar | Pedido contado pelas transições; contadores usados só como diferença |
 | Contador de reprovados diminui | Reinício da bancada | Não conta como reprovação |
-| `192.168.160.100:5050/requests` | Endereço visto no laboratório, função desconhecida | A investigar na próxima visita |
+| `192.168.160.100:5050/requests` | Endereço aberto numa aba do navegador do laboratório, função desconhecida | Não é usado |
 
-## Fotos
+## Fotos (laboratório, 14/09/2026)
 
-As fotos do laboratório ficam em [`fotos/`](fotos/). A lista do que fotografar está em [`fotos/README.md`](fotos/README.md).
+As fotos ficam em [`docs/img/`](../docs/img/) e são usadas também nos slides.
+
+| Node-RED: aba `API_Dados_Planta` | Função `leDadosPlanta` |
+|---|---|
+| ![Flow API_Dados_Planta: get /dadosPlanta, leDadosPlanta e http](../docs/img/node-red-api-dados-planta.jpg) | ![Código da função leDadosPlanta](../docs/img/node-red-ledadosplanta.jpg) |
+| **Node-RED: aba `CLP_MQTT`** (o `CLP_TAGO` em "connecting") | **O JSON do `/dadosPlanta` no navegador** |
+| ![Flow CLP_MQTT com as funções de status e o nó CLP_TAGO](../docs/img/node-red-clp-mqtt.jpg) | ![JSON do /dadosPlanta aberto no navegador](../docs/img/json-dadosplanta-navegador.jpg) |
+| **Bancada Smart 4.0: estoque, manipulação e separação** | **TIA Portal com o CLP ET 200SP online** |
+| ![Bancada Smart 4.0 vista de cima](../docs/img/bancada-estacoes.jpg) | ![TIA Portal: ET200SP com o status online atualizado](../docs/img/tia-portal-et200sp.jpg) |
+
+| Bancada (frente) | Gabinete: compressor e painel | Painel elétrico com o SIMATIC ET 200SP |
+|---|---|---|
+| ![Frente da Bancada Smart 4.0](../docs/img/bancada-frente.jpg) | ![Gabinete da bancada com o compressor e o painel elétrico](../docs/img/painel-gabinete.jpg) | ![Painel elétrico com o CLP Siemens ET 200SP](../docs/img/painel-et200sp.jpg) |
