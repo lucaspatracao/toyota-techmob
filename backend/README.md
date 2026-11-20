@@ -79,7 +79,7 @@ Caminho de uma requisição: `Controller → Service → Repository → MySQL`, 
 
 ## Endpoints
 
-Todos são `GET`. O contrato segue o plano de alinhamento (`docs/PLANO_ALINHAMENTO.md`): o OEE é **por pedido** da bancada (3 peças), não por turno. Os endpoints de planta e de pedidos são implementados junto com o pacote de coleta e o `PedidoController`.
+Todos são `GET`. O contrato segue o plano de alinhamento (`docs/PLANO_ALINHAMENTO.md`): o OEE é **por pedido** da bancada (3 peças), não por turno.
 
 | Rota | Retorna |
 |---|---|
@@ -163,7 +163,7 @@ Os números abaixo usam os tempos provisórios (padrão de 80 s por pedido) e o 
 
 - `planta` é o mesmo objeto de `/api/planta/1/status` (resumido acima).
 - `indicadorAtual` é o OEE do último pedido concluído; vem `null` enquanto não houver nenhum.
-- `resumoHoje` conta só pedidos concluídos (os interrompidos aparecem à parte). O OEE do resumo **soma os tempos** de todos os pedidos e aplica a fórmula uma vez; não é a média dos OEEs. Sem pedido concluído no dia, as médias, a taxa e o OEE vêm `null`.
+- `resumoHoje` vai da meia-noite à meia-noite no fuso do servidor (no laboratório, o de Brasília) e conta só pedidos concluídos (os interrompidos aparecem à parte). O OEE do resumo **soma os tempos** de todos os pedidos e aplica a fórmula uma vez; não é a média dos OEEs. Sem pedido concluído no dia, as médias, a taxa e o OEE vêm `null`.
 - `metaOee` vem da variável `META_OEE` (padrão 75).
 
 `GET /api/pedidos/1?de=2026-11-17T03:00:00Z&ate=2026-11-18T03:00:00Z&origem=REPLAY`
@@ -189,7 +189,7 @@ Os números abaixo usam os tempos provisórios (padrão de 80 s por pedido) e o 
 ]
 ```
 
-- `de` e `ate`: instantes ISO-8601, opcionais (sem eles, todos os pedidos). O filtro é pelo início do pedido, no intervalo `[de, ate)`.
+- `de` e `ate`: instantes ISO-8601, opcionais e independentes (sem eles, todos os pedidos). O filtro é pelo início do pedido, no intervalo `[de, ate)`. Aceitam fuso: `de=2026-11-17T00:00:00-03:00` é o mesmo que `de=2026-11-17T03:00:00Z` (um fuso positivo precisa de `%2B` no lugar do `+` na URL).
 - `origem`: opcional; sem ela, todas as origens.
 - `duracaoEtapasS` traz o tempo de cada estação no pedido, para os gráficos de etapa sem buscar o detalhe.
 - Pedido em andamento ou interrompido vem com D, P, Q e OEE `null`: fica fora do OEE.
@@ -242,7 +242,8 @@ Todo erro volta no mesmo formato:
 |---|---|
 | Máquina ou pedido inexistente | `404` |
 | Rota inexistente | `404` |
-| Id ou parâmetro em formato inválido (ex.: `/api/dashboard/abc`, `origem=XYZ`) | `400` |
+| Id ou parâmetro em formato inválido (ex.: `/api/dashboard/abc`, `origem=XYZ`); a mensagem diz o formato esperado | `400` |
+| Método diferente de `GET` (ex.: `POST /api/maquinas`) | `405` |
 | Erro inesperado | `500`, com mensagem fixa (o detalhe fica só no log) |
 
 ## Banco de dados

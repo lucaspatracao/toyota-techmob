@@ -11,7 +11,10 @@ import com.toyota.techmob.backend.service.MaquinaService;
 
 import lombok.RequiredArgsConstructor;
 
-/** GET /api/dashboard/{maquinaId}: máquina + OEE mais recente (Documento do Projeto, seção 5.4). */
+/**
+ * GET /api/dashboard/{maquinaId}: máquina, OEE do último pedido concluído,
+ * estado ao vivo, resumo de hoje e meta de OEE.
+ */
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor

@@ -89,4 +89,14 @@ public class Pedido {
         etapa.setPedido(this);
         etapas.add(etapa);
     }
+
+    /**
+     * Tempo padrão do pedido: soma da cronometragem das etapas que ele teve
+     * (zero sem etapas). É o T_padrão da performance.
+     */
+    public BigDecimal somaTempoPadraoS() {
+        return etapas.stream()
+                .map(EtapaPedido::getTempoPadraoS)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }
