@@ -4,10 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.toyota.techmob.backend.coleta.EstadoPlantaAtual.EstacaoAtual;
+import com.toyota.techmob.backend.coleta.EstadoPlantaAtual.Estado;
+import com.toyota.techmob.backend.coleta.EstadoPlantaAtual.PedidoAtual;
+import com.toyota.techmob.backend.coleta.SituacaoEstacao;
+import com.toyota.techmob.backend.coleta.StatusMaquina;
 import com.toyota.techmob.backend.domain.Estacao;
 import com.toyota.techmob.backend.domain.EtapaPedido;
 import com.toyota.techmob.backend.domain.IndicadorOEE;
@@ -17,11 +25,15 @@ import com.toyota.techmob.backend.domain.Pedido;
 import com.toyota.techmob.backend.domain.SituacaoPedido;
 import com.toyota.techmob.backend.dto.PedidoDTO;
 import com.toyota.techmob.backend.dto.PedidoDetalheDTO;
+import com.toyota.techmob.backend.dto.StatusPlantaDTO;
 
-/** Conversão de Pedido e EtapaPedido para os DTOs da API. */
+/** Conversão de Pedido, EtapaPedido e do estado ao vivo para os DTOs da API. */
 class DtoMapperTest {
 
     private static final OffsetDateTime T0 = OffsetDateTime.parse("2026-11-17T10:00:00Z");
+
+    private static final Map<Estacao, Double> PADRAO = Map.of(
+            Estacao.ESTOQUE, 20.0, Estacao.MANIPULACAO, 35.0, Estacao.SEPARACAO, 25.0);
 
     private Pedido pedido() {
         Maquina maquina = new Maquina();
@@ -96,5 +108,42 @@ class DtoMapperTest {
         assertThat(dto.etapas()).extracting(e -> e.estacao())
                 .containsExactly(Estacao.ESTOQUE, Estacao.MANIPULACAO, Estacao.SEPARACAO);
         assertThat(dto.etapas().get(1).tempoPadraoS()).isEqualTo(35.0);
+    }
+
+    @Test
+    void statusPlanta_semConexao_temEstacoesSemConexaoESemPedido() {
+        StatusPlantaDTO dto = DtoMapper.paraDTO(Estado.semConexao(1L), PADRAO, T0.toInstant());
+
+        assertThat(dto.status()).isEqualTo("SEM_CONEXAO");
+        assertThat(dto.conectado()).isFalse();
+        assertThat(dto.fonte()).isNull();
+        assertThat(dto.estacoes()).extracting(StatusPlantaDTO.EstacaoStatus::situacao)
+                .containsOnly("SEM_CONEXAO");
+        assertThat(dto.pedidoEmAndamento()).isNull();
+        assertThat(dto.tempoPadraoPedidoS()).isEqualTo(80.0);
+        assertThat(dto.ultimaLeituraEm()).isNull();
+    }
+
+    @Test
+    void statusPlanta_comPedidoAberto_calculaODecorridoNaHoraDaConsulta() {
+        Instant inicio = Instant.parse("2026-11-17T13:04:40.102Z");
+        Instant ultimaLeitura = Instant.parse("2026-11-17T13:05:12.000Z");
+        Estado estado = new Estado(1L, true, OrigemPedido.REPLAY, StatusMaquina.PRODUZINDO, "PRODUZINDO",
+                List.of(new EstacaoAtual(Estacao.ESTOQUE, "AGUARDANDO", SituacaoEstacao.AGUARDANDO),
+                        new EstacaoAtual(Estacao.MANIPULACAO, "PRODUZINDO", SituacaoEstacao.OPERANDO),
+                        new EstacaoAtual(Estacao.SEPARACAO, "AGUARDANDO", SituacaoEstacao.AGUARDANDO)),
+                new PedidoAtual(43L, 43, inicio, Estacao.MANIPULACAO), ultimaLeitura);
+
+        StatusPlantaDTO dto = DtoMapper.paraDTO(estado, PADRAO, Instant.parse("2026-11-17T13:05:12.402Z"));
+
+        assertThat(dto.status()).isEqualTo("PRODUZINDO");
+        assertThat(dto.fonte()).isEqualTo(OrigemPedido.REPLAY);
+        assertThat(dto.estacoes()).containsExactly(
+                new StatusPlantaDTO.EstacaoStatus(Estacao.ESTOQUE, "AGUARDANDO", "AGUARDANDO", 20.0),
+                new StatusPlantaDTO.EstacaoStatus(Estacao.MANIPULACAO, "PRODUZINDO", "OPERANDO", 35.0),
+                new StatusPlantaDTO.EstacaoStatus(Estacao.SEPARACAO, "AGUARDANDO", "AGUARDANDO", 25.0));
+        assertThat(dto.pedidoEmAndamento()).isEqualTo(
+                new StatusPlantaDTO.PedidoEmAndamento(43L, 43, inicio, 32.3, Estacao.MANIPULACAO));
+        assertThat(dto.ultimaLeituraEm()).isEqualTo(ultimaLeitura);
     }
 }
