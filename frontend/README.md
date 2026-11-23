@@ -34,6 +34,8 @@ A pasta `dist/` é gerada a cada build e **não é versionada**. O build separa 
 
 ### Dashboard
 
+![Dashboard: OEE do último pedido, tendência e Andon das estações](../docs/img/tela-dashboard.png)
+
 | Painel | O que mostra | Endpoint |
 |---|---|---|
 | 4 cards (OEE, Disponibilidade, Performance, Qualidade) | Os do **último pedido concluído**, com a meta, o tempo parado, o lead time contra o padrão e se o pedido foi aprovado. As setas comparam com a média dos 10 pedidos anteriores | `/api/dashboard/{id}`, `/api/pedidos/detalhe/{id}` |
@@ -42,6 +44,8 @@ A pasta `dist/` é gerada a cada build e **não é versionada**. O build separa 
 | Aviso | Só quando falta dado: API fora do ar ou fonte sem conexão | `/api/dashboard/{id}` |
 
 ### Produção
+
+![Produção: tempo de cada etapa por pedido e estação gargalo](../docs/img/tela-producao.png)
 
 Seletor Hoje / 7D / 30D / Tudo (`/api/pedidos/{id}?de=`).
 
@@ -53,6 +57,8 @@ Seletor Hoje / 7D / 30D / Tudo (`/api/pedidos/{id}?de=`).
 | Tempo médio por etapa x padrão | Duas barras por estação; a que mais passa do padrão ganha o selo **gargalo** |
 
 ### Histórico
+
+![Histórico: pedidos com D, P, Q e OEE](../docs/img/tela-historico.png)
 
 Filtros: período, agrupar por Pedido / Hora / Dia e origem (Bancada, Replay, Simulação), todos enviados à API (`/api/pedidos/{id}?de=&ate=&origem=`).
 

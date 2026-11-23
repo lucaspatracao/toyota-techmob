@@ -15,6 +15,14 @@ O TechMob 4.0 monitora a **Bancada Smart 4.0** do laboratório (CLP Siemens ET 2
 | Apoio à tomada de decisão | Alerta quando o pedido passa do padrão ou o OEE fica abaixo da meta; estação gargalo em destaque | Dashboard, Produção |
 | Aplicação em ambiente produtivo | Contrato e regras tirados da bancada real: o JSON do `/dadosPlanta`, o flow do Node-RED e o CLP ET 200SP ([fotos](docs/img/)); o simulador reproduz esse JSON com a cronometragem da equipe | Simulador e backend |
 
+## Telas
+
+| Dashboard | Produção | Histórico |
+|---|---|---|
+| ![Dashboard: OEE do último pedido, tendência e Andon das estações](docs/img/tela-dashboard.png) | ![Produção: tempo de cada etapa por pedido e estação gargalo](docs/img/tela-producao.png) | ![Histórico: pedidos com D, P, Q e OEE](docs/img/tela-historico.png) |
+
+O que cada painel mostra está em [`frontend/README.md`](frontend/README.md#telas).
+
 ## Arquitetura
 
 ```mermaid
@@ -76,8 +84,8 @@ toyota-techmob/
 │   └── schema.sql                 # tabelas + seed da BANCADA_SMART_01 (id = 1)
 ├── docs/
 │   ├── PLANO_ALINHAMENTO.md       # plano da equipe: decisões, contrato e ordem de execução
-│   ├── entregas/                  # planos de ação: relatório ABNT, slides e vídeo pitch
-│   └── img/                       # fotos do laboratório (14/09/2026)
+│   ├── entregas/                  # relatório ABNT, roteiro do pitch e o deck de slides (.pptx)
+│   └── img/                       # fotos do laboratório (14/09/2026) e capturas das telas
 └── README.md
 ```
 
@@ -182,7 +190,7 @@ O sistema está completo: as Partes 1 a 14 do [plano de alinhamento](docs/PLANO_
 | Entrega | Plano de ação |
 |---|---|
 | Relatório técnico (ABNT) | [`RELATORIO_TECNICO_ABNT.md`](docs/entregas/RELATORIO_TECNICO_ABNT.md) |
-| Apresentação de slides | [`APRESENTACAO_SLIDES.md`](docs/entregas/APRESENTACAO_SLIDES.md) |
+| Apresentação de slides | [`TechMob_4.0_Apresentacao.pptx`](docs/entregas/TechMob_4.0_Apresentacao.pptx) (16 slides) |
 | Vídeo pitch técnico (banca e SAGA) | [`ROTEIRO_PITCH_TECNICO.md`](docs/entregas/ROTEIRO_PITCH_TECNICO.md) |
 
 Pendências: a data da banca e a duração da apresentação, e o modelo do relatório do SENAI (até ele sair, o relatório segue a NBR 14724).

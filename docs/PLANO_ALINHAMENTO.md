@@ -260,7 +260,7 @@ Entregas da próxima etapa (fora do código):
 | Entrega | Base | Plano de ação |
 | :---- | :---- | :---- |
 | Relatório técnico | Normas ABNT (NBR 14724 e associadas). O modelo do SENAI ainda não foi definido; quando sair, muda só a formatação | [`entregas/RELATORIO_TECNICO_ABNT.md`](entregas/RELATORIO_TECNICO_ABNT.md) |
-| Slides | Deck novo, feito do zero. O arquivo de 24/10 descreve a arquitetura antiga (MQTT, OEE por turno, telas antigas) e serve só para a capa, os dados de contexto (CNI) e a identidade visual | [`entregas/APRESENTACAO_SLIDES.md`](entregas/APRESENTACAO_SLIDES.md) |
+| Slides | Deck novo, feito do zero. O arquivo de 24/10 descreve a arquitetura antiga (MQTT, OEE por turno, telas antigas) e serve só para a capa, os dados de contexto (CNI) e a identidade visual | [`entregas/TechMob_4.0_Apresentacao.pptx`](entregas/TechMob_4.0_Apresentacao.pptx) (16 slides) |
 | Vídeo pitch técnico | Duas versões: banca (3 a 5 min) e SAGA (~1:30), descritas abaixo | [`entregas/ROTEIRO_PITCH_TECNICO.md`](entregas/ROTEIRO_PITCH_TECNICO.md) |
 
 Slides: a sequência segue a narrativa acima. Os pontos técnicos que precisam aparecer são a bancada e as fotos, a integração (JSON do `/dadosPlanta` e Node-RED somente leitura), a arquitetura nova, o OEE por pedido com o exemplo de 80,0%, o backend com os testes, a demonstração (Andon → etapa gargalo na Produção → Histórico) e as restrições ("dados de uma bancada didática, nenhum dado industrial ou pessoal"; "Node-RED da bancada somente leitura"). Conclusão: "O sistema já fala a língua da bancada: ligar é trocar uma URL."
