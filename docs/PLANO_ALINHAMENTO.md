@@ -1,6 +1,6 @@
 # TechMob 4.0 — Plano de alinhamento com a Bancada Smart 4.0
 
-Atualizado em 17/11/2026 · Equipe TechMob 4.0
+Atualizado em 20/11/2026 · Equipe TechMob 4.0
 
 > Documento de referência da equipe. Cada parte da execução tem responsável, branch e PR próprios (seção **Ordem de execução**).
 
@@ -13,15 +13,25 @@ O TechMob 4.0 passa a medir a bancada como ela é: um pedido de 3 peças por vez
 | Monitoramento de processos | Status das 3 estações (Andon) e pedido em andamento, atualizados a cada 2 s | Dashboard |
 | Análise de dados | OEE por pedido (D × P × Q) e tempo de cada etapa comparado ao tempo padrão | Produção, Histórico |
 | Apoio à tomada de decisão | Alerta quando o pedido passa do padrão ou o OEE fica abaixo da meta; estação gargalo em destaque | Dashboard, Produção |
-| Aplicação em ambiente produtivo | Dados da Bancada Smart 4.0 real (CLP Siemens ET 200SP), gravados e reproduzidos | Coletor e replay |
+| Aplicação em ambiente produtivo | Contrato e regras tirados da Bancada Smart 4.0 real (CLP Siemens ET 200SP): o JSON do `/dadosPlanta`, o flow do Node-RED e as fotos de 14/09; o simulador reproduz esse JSON com a cronometragem da equipe | Simulador e backend |
 
 Decisões já tomadas:
 
 - **OEE por pedido**, não por turno. A fórmula é a da fábrica; muda só a janela.
 - **Node-RED da bancada é só leitura.** Nada é instalado ou alterado nele.
 - **O OEE é calculado em um lugar só: o backend.** O Python sai do caminho ao vivo e fica com coleta, simulação e análise.
-- **Na banca, o dashboard roda em replay** de uma execução real gravada no laboratório, porque a bancada não sai de lá.
+- **Na banca, o dashboard roda com o simulador da bancada** (decisão de 19/11; antes previa o replay de uma gravação real, ver a atualização abaixo).
 - **O que sai do projeto:** o flow MQTT→CSV, o broker Aedes, a simulação local do frontend (simulation.js, mockData.js) e o cálculo de 8 h fixas.
+
+### Atualização de 19/11/2026: sem nova ida ao laboratório
+
+Por orientação do docente, não haverá nova ida ao laboratório. A base do projeto passa a ser o que foi levantado em 14/09/2026 e a cronometragem da equipe:
+
+- **Dado de referência:** o JSON do `/dadosPlanta` (bancada parada depois de 1 pedido), o flow do Node-RED, o CLP ET 200SP no TIA Portal e as fotos em `docs/img/`.
+- **Fonte do sistema:** o simulador da bancada (`simulador_planta.py`, modo sintético), que responde o mesmo JSON com os tempos da cronometragem. É a fonte padrão e deixa de aparecer como alerta no dashboard. A leitura da bancada real continua no código (basta trocar a `PLANTA_URL`).
+- **Valores definitivos:** tempo padrão de 20 s (estoque), 35 s (manipulação) e 25 s (separação), 80 s por pedido; meta de OEE de 75%; textos de status `AGUARDANDO` (lido na bancada), `PRODUZINDO` e `PARADO` (os do simulador).
+- **Sem efeito:** o checklist do laboratório, as gravações reais de 3 a 5 pedidos e o replay delas na banca. Coletor e replay continuam no código.
+- **Execução:** a Parte 11 recebe as fotos e a nova Parte 14 aplica a decisão (dashboard, comentários de configuração, READMEs e este plano). A revisão de 20/11 alinha à decisão as seções de arquitetura, apresentação, vídeos e riscos.
 
 ## Nova arquitetura
 
@@ -29,17 +39,17 @@ Decisões já tomadas:
 flowchart LR
     B["Bancada Smart 4.0<br/>CLP Siemens ET 200SP"] -- PROFINET --> N["Node-RED da bancada<br/>GET /dadosPlanta :1880<br/>somente leitura"]
     N -- "lê a cada 1 s" --> C["coletor_planta.py<br/>grava gravacoes/*.jsonl"]
-    C -- "gravação real" --> S["simulador_planta.py<br/>replay ou sintético :1881"]
-    N -- primário --> P
-    S -. fallback .-> P
+    C -- "gravação" --> S["simulador_planta.py<br/>sintético ou replay"]
+    S -- "fonte padrão (mesmo JSON)" --> P
+    N -. "bancada real" .-> P
     subgraph BE["Backend Spring Boot (pacote coleta)"]
         P["PlantaClient"] --> D["DetectorPedidos"] --> O["CalculadoraOEE"] --> A["Services e API REST"]
     end
     O --> M[("MySQL techmob<br/>pedido, etapa_pedido, indicador_oee")]
-    A --> R["React (frontend)<br/>3 telas, mesmo design"]
+    A --> R["React (frontend)<br/>Dashboard, Produção, Histórico"]
 ```
 
-A bancada real e o simulador entregam o mesmo JSON. O backend só troca a URL e grava a origem de cada pedido (BANCADA, REPLAY ou SINTETICO). O coletor grava as execuções reais, que o simulador reproduz na banca.
+A bancada real e o simulador entregam o mesmo JSON. O backend só troca a URL e grava a origem de cada pedido (BANCADA, REPLAY ou SINTETICO). Desde 19/11, a fonte padrão é o simulador no modo sintético, na porta 1880 (a mesma da bancada). Para ler a bancada real, basta apontar a `PLANTA_URL` para o Node-RED dela e deixar o simulador na 1881 como reserva. O coletor e o replay continuam no código para quando houver acesso à bancada ligada.
 
 ## Contrato do dado e cálculo por pedido
 
@@ -56,7 +66,7 @@ JSON real lido em localhost:1880/dadosPlanta (14/09, bancada parada):
 | total_pedidos, pedidos15min | contador | Só conferência; a bancada guarda só o primeiro pedido, então não é usado para contar |
 | Temperatura, Umidade | número | Ignorados: chegam sempre 0, a bancada não tem esses sensores |
 
-Regras para identificar um pedido (os textos de status são confirmados pela gravação real e ficam configuráveis):
+Regras para identificar um pedido (`AGUARDANDO` foi lido na bancada; os demais textos de status são os do simulador e ficam configuráveis):
 
 1. **Início:** aguardando passa de 1 para 0 sem pedido aberto.
 2. **Etapa:** abre quando a estação sai de AGUARDANDO e fecha quando volta. Tempo em status de parada é somado como parada da etapa.
@@ -71,7 +81,7 @@ Cálculo do OEE de um pedido. L = lead time (início ao fim), T_parado = soma da
 - Q = 1 se o pedido foi aprovado, 0 se foi reprovado
 - OEE = D × P × Q
 
-Exemplo ilustrativo (tempos provisórios): padrão 80 s, pedido de 100 s com 12 s parado. Operando 88 s, D = 88%, P = 80 ÷ 88 = 90,9%, Q = 100%, OEE = 80,0%.
+Exemplo com os tempos definitivos (padrão de 80 s por pedido): pedido de 100 s com 12 s parado. Operando 88 s, D = 88%, P = 80 ÷ 88 = 90,9%, Q = 100%, OEE = 80,0%.
 Para vários pedidos (Histórico, Produção), o OEE acumulado soma os tempos de todos os pedidos e aplica a mesma fórmula. Não é a média dos OEEs, que distorce quando os pedidos têm durações diferentes.
 
 ## Infra e banco (infra/schema.sql)
@@ -103,15 +113,15 @@ O Python sai do caminho ao vivo (não grava mais no MySQL) e fica com três pap�
 | :---- | :---- | :---- |
 | coletor_planta.py | Novo (pronto) | Grava o /dadosPlanta em gravacoes/*.jsonl, só nas mudanças, com horário |
 | simulador_planta.py | Novo (pronto) + 1 ajuste | Serve o mesmo JSON nos modos sintetico e replay. Ajuste: enviar o cabeçalho X-TechMob-Fonte: replay ou sintetico, para o backend gravar a origem certa (o Node-RED real não envia nada = BANCADA) |
-| ciclo_padrao.json | Novo (pronto) + preencher | Trocar os tempos provisórios pela cronometragem real; confirmar os textos de status com a primeira gravação |
+| ciclo_padrao.json | Novo (pronto) | Tempos da cronometragem da equipe (20 s, 35 s e 25 s; 80 s por pedido) e textos de status configuráveis (`AGUARDANDO`, `PRODUZINDO`, `PARADO`) |
 | oee_calculator.py | Refatorar | Entrada passa a ser uma gravação .jsonl, não CSV. Detecta os pedidos com as mesmas regras do backend e calcula D, P, Q e OEE por pedido. Saída: tabela no console e `resultados/pedidos_<sessao>.csv`. Saem --watch-dir, as 8 h fixas e a gravação no MySQL |
-| analisar_cronometragem.py | Novo | Lê uma ou mais gravações reais e gera o tempo padrão por etapa (mediana) para o ciclo_padrao.json, além de um relatório de gargalo (etapa com maior variação e maior atraso sobre o padrão) |
+| analisar_cronometragem.py | Novo | Lê uma ou mais gravações (do coletor ou de teste) e gera o tempo padrão por etapa (mediana) para o ciclo_padrao.json, além de um relatório de gargalo (etapa com maior variação e maior atraso sobre o padrão) |
 | simulador_oee.py | Remover | Substituído pelo simulador_planta.py. Os status dele (PARADA_PROGRAMADA...) não batem com a bancada |
-| dados_producao_exemplo.csv | Remover | Formato antigo. O exemplo passa a ser uma gravação real em gravacoes/ |
+| dados_producao_exemplo.csv | Remover | Formato antigo. Os exemplos passam a ser as gravações de teste em `tests/gravacoes/` |
 | requirements.txt | Ajustar | Fica só pandas. SQLAlchemy e PyMySQL saem. Coletor e simulador não precisam de nada |
 | tests/test_oee.py | Novo | pytest com uma gravação pequena de exemplo: pedidos detectados, pedido reprovado, pedido interrompido e o exemplo de 80,0% da seção anterior |
 
-Também no .gitignore: trocar as linhas dos CSVs antigos por data/resultados/. As gravações reais em data/gravacoes/ **são versionadas**: são a evidência do projeto e não têm dado pessoal.
+Também no .gitignore: trocar as linhas dos CSVs antigos por data/resultados/. Gravações reais em data/gravacoes/ seriam versionadas (evidência, sem dado pessoal), mas não houve gravação real: a ida ao laboratório foi cancelada em 19/11. Os testes usam as gravações de exemplo em `data/tests/gravacoes/` e `backend/src/test/resources/gravacoes/` (`exemplo_80.jsonl` e `sintetica_seed12.jsonl`).
 
 ## Node-RED (node-red/)
 
@@ -173,7 +183,7 @@ Contrato da API depois da mudança (todos GET):
 application.properties ganha o bloco techmob.*, todos com variável de ambiente e padrão: PLANTA_URL (padrão http://localhost:1880/dadosPlanta), PLANTA_URL_FALLBACK (http://localhost:1881/dadosPlanta), PLANTA_INTERVALO_MS (1000), META_OEE (75).
 Testes:
 
-- **Novos unitários:** CalculadoraOEETest (exemplo de 80,0%, reprovado = 0%, performance limitada a 100%, acumulado por soma de tempos) e DetectorPedidosTest, alimentado por uma gravação real em src/test/resources/gravacoes/.
+- **Novos unitários:** CalculadoraOEETest (exemplo de 80,0%, reprovado = 0%, performance limitada a 100%, acumulado por soma de tempos) e DetectorPedidosTest, alimentado pelas gravações de teste em src/test/resources/gravacoes/ (`exemplo_80.jsonl` e `sintetica_seed12.jsonl`; não houve gravação real).
 - **PlantaClientTest** com MockRestServiceServer: resposta normal, JSON inválido, queda e troca para o fallback.
 - **Ajustar** ApiContratoIntegrationTest para os contratos novos e incluir 404 de rota inexistente e 400 de id inválido.
 - **Trocar** HistoricoProducaoServiceImplTest por PedidoServiceImplTest.
@@ -190,7 +200,7 @@ O design fica igual: mesmos componentes (KpiCard, Panel, StatCard, SummaryDonut,
 | 4 KpiCard (OEE, D, P, Q) | Os 4 do **último pedido concluído**. Legendas reais: meta vinda da API; tempo parado; lead time contra o padrão; pedido aprovado ou reprovado. Setas de tendência contra a média dos últimos 10 pedidos (saem os 90/85/98 fixos) |
 | TENDÊNCIA – Evolução do OEE (TrendChart) | OEE **pedido a pedido**. O seletor "Últimas 24h / 7 dias" vira "Últimos 10 / 20 / 50 pedidos" |
 | STATUS DA LINHA | **Andon**: as 3 estações com o ponto de status (verde operando, cinza aguardando, vermelho parado), o pedido em andamento, a etapa atual e o tempo decorrido contra o padrão. Métricas: pedidos hoje, aprovados, lead time médio |
-| Banner "Modo de demonstração" | Mesmo estilo, dois casos: API fora do ar (usa o ErrorState que já existe) e bancada sem conexão ("exibindo replay" ou "exibindo simulação") |
+| Banner "Modo de demonstração" | Mesmo estilo, só quando falta dado: API fora do ar (usa o ErrorState que já existe) ou fonte sem conexão. Bancada, simulador e replay são fontes normais (decisão de 19/11): a origem aparece no selo da Topbar e no rodapé do Dashboard, sem alerta |
 
 Saem os valores fixos: "Meta do turno: 75%", "7h 22min", "12,8 s", "un/h" e a série de 12 horas no código. Corrige o bug simulationState ?? data.
 
@@ -231,34 +241,34 @@ Corrige o useMemo que nunca reaproveita (sourceRows recriado a cada render) e o 
 
 ## Documentação e apresentação
 
-A narrativa fica CONTEXTO → PROBLEMA → SOLUÇÃO → CONCLUSÃO, com o software como solução: ele monitora, analisa e apoia a decisão na bancada real. As fotos do laboratório entram como prova.
-READMEs:
+A narrativa fica CONTEXTO → PROBLEMA → SOLUÇÃO → CONCLUSÃO, com o software como solução: ele monitora, analisa e apoia a decisão na bancada. As fotos do laboratório (14/09) entram como prova de que o contrato e as regras vêm da bancada real.
+
+Regra de linguagem para slides, relatório e vídeos (decisão de 19/11): falar em **"contrato real da bancada"** e **"simulador da bancada"**, nunca em "dados reais da bancada". O dashboard da apresentação roda com o simulador, que responde o mesmo JSON do `/dadosPlanta`; para ler a bancada real, basta trocar a `PLANTA_URL`.
+
+READMEs (feitos nas Partes 13 e 14):
 
 | Arquivo | Mudança |
 | :---- | :---- |
-| README.md (raiz) | Arquitetura nova; "Como rodar" com 4 passos (banco, fonte de dados = bancada ou simulador, backend, frontend); portas (1880 bancada/simulador, 1881 fallback, 8080, 5173; sai a 1883); pendências atualizadas |
+| README.md (raiz) | Arquitetura nova; "Como rodar" com 4 passos (banco, fonte de dados = simulador ou bancada, backend, frontend); portas (1880 simulador/bancada, 1881 fallback, 8080, 5173; sai a 1883); pendências atualizadas |
 | backend/README.md | Pacote coleta, propriedades techmob.*, endpoints novos, como rodar contra o simulador |
 | frontend/README.md | Telas novas, fonte do dado, variáveis VITE_* |
 | data/README.md (novo) | Coletor, simulador (sintético e replay), análise e a fórmula do OEE por pedido |
 | node-red/README.md (novo) | Node-RED da bancada, somente leitura (seção Node-RED) |
 
-Slides:
+Entregas da próxima etapa (fora do código):
 
-| Slide | Hoje | Passa a ser |
-| :---- | :---- | :---- |
-| 4 – Solução | Equipamento, indicador, conhecimento | Igual, com a foto da bancada e "OEE por pedido" no indicador |
-| 5 – Arquitetura | Diagrama quebrado (texto espremido) com MQTT e CSV | Refazer com o fluxo novo da seção Arquitetura |
-| 6 – Integração | Contrato vazio e selo "ainda sem publicação" | JSON real, foto do flow API_Dados_Planta e selo "lendo a bancada" |
-| 7 – OEE | Exemplo 90% × 85% × 95% | Exemplo de um pedido real (tempos da gravação) |
-| 8 – Back-end | 4 endpoints, 17 testes, 3 tabelas | Atualizar os números no fim da implementação |
-| 10 – Cenário | Alerta → Produção → Histórico, "dados simulados" | Andon mostra pedido acima do padrão → Produção aponta a etapa gargalo → Histórico mostra se repete. Selo "dados reais da bancada" |
-| 11 – Restrições | "Toda fonte de dados é simulada" | "Dados de uma bancada didática, nenhum dado industrial"; acrescentar "Node-RED da bancada somente leitura" |
-| 12 – Conclusão | "O caminho está pronto. Falta a bancada." | "A bancada já fala com o sistema." |
+| Entrega | Base |
+| :---- | :---- |
+| Relatório técnico | Normas ABNT (NBR 14724 e associadas). O modelo do SENAI ainda não foi definido; quando sair, muda só a formatação |
+| Slides | Deck novo, feito do zero. O arquivo de 24/10 descreve a arquitetura antiga (MQTT, OEE por turno, telas antigas) e serve só para a capa, os dados de contexto (CNI) e a identidade visual |
+| Vídeo pitch técnico | Duas versões: banca (3 a 5 min) e SAGA (~1:30), descritas abaixo |
+
+Slides: a sequência segue a narrativa acima. Os pontos técnicos que precisam aparecer são a bancada e as fotos, a integração (JSON do `/dadosPlanta` e Node-RED somente leitura), a arquitetura nova, o OEE por pedido com o exemplo de 80,0%, o backend com os testes, a demonstração (Andon → etapa gargalo na Produção → Histórico) e as restrições ("dados de uma bancada didática, nenhum dado industrial ou pessoal"; "Node-RED da bancada somente leitura"). Conclusão: "O sistema já fala a língua da bancada: ligar é trocar uma URL."
 
 Vídeos:
 
-- **Banca (3 a 5 min):** gravação no laboratório da bancada executando um pedido, em paralelo com o dashboard ao vivo. No auditório, a demonstração roda em replay dessa mesma execução.
-- **SAGA (~1:30):** cortes da bancada, do Andon e do OEE do pedido.
+- **Banca (3 a 5 min):** gravação de tela do dashboard rodando com o simulador da bancada (Dashboard → Produção → Histórico), intercalada com as fotos de 14/09 (bancada, painel ET 200SP, flow do Node-RED e o JSON no navegador) e com o diagrama da arquitetura. Sem gravação no laboratório e sem replay.
+- **SAGA (~1:30):** corte da versão da banca: problema, bancada (fotos), Andon e OEE do pedido, conclusão.
 
 ## Equipe e responsabilidades
 
@@ -289,8 +299,9 @@ Cada parte é uma branch e um PR, no nome de quem é responsável por ela. As br
 | 11 | Otávio | `docs/node-red-bancada` | `node-red/README.md` e `node-red/fotos/` (Node-RED da bancada, somente leitura) | Leitura |
 | 12 | Lucas | `chore/remove-fluxo-antigo` | Remoção do fluxo antigo (Node-RED local, `simulador_oee.py`, CSV de exemplo, mocks do frontend) | `mvnw test`, `npm run build`, `pytest` |
 | 13 | Nykolas | `docs/readmes-alinhamento` | `README.md` da raiz, `backend/README.md`, `frontend/README.md` e `data/README.md` | Leitura |
+| 14 | Lucas | `feat/simulacao-como-fonte` | Decisão de 19/11: simulador como fonte padrão (sem alerta no dashboard), valores definitivos e documentação atualizada | `mvnw test`, `npm run build`, `pytest` |
 
-Fora do código: gravações reais no laboratório (todos, quando a bancada estiver disponível), slides e vídeos.
+Fora do código: relatório técnico (ABNT), slides e vídeo pitch (banca e SAGA). (As gravações reais no laboratório foram canceladas em 19/11.)
 
 Regras para cada parte:
 
@@ -299,9 +310,11 @@ Regras para cada parte:
 3. Commits pequenos, em português, no padrão `tipo(escopo): descrição` (ex.: `feat(coleta): detecta pedidos pelas transições do /dadosPlanta`), no nome e e-mail do responsável pela parte.
 4. O PR descreve o que mudou e como testar, e precisa da revisão de pelo menos uma pessoa de outra parte. O responsável pela parte revisa e aprova o próprio conteúdo antes do merge.
 
-Valores provisórios até a ida ao laboratório: tempo padrão de 80 s por pedido (20 s estoque, 35 s manipulação, 25 s separação, em `ciclo_padrao.json` e no seed) e meta de OEE de 75% (variável `META_OEE`). Os textos de status além de `AGUARDANDO` ficam configuráveis.
+Valores do projeto (definitivos desde 19/11): tempo padrão de 80 s por pedido (20 s estoque, 35 s manipulação, 25 s separação, em `ciclo_padrao.json` e no seed) e meta de OEE de 75% (variável `META_OEE`). Os textos de status além de `AGUARDANDO` são os do simulador e ficam configuráveis.
 
 ## Checklist do dia no laboratório
+
+> **Cancelado em 19/11/2026:** não haverá nova ida ao laboratório (ver a atualização no início). Mantido como registro.
 
 O objetivo da visita é sair com gravações reais de 3 a 5 pedidos, sem alterar nada na bancada. O JSON só existe com a bancada ligada.
 
@@ -320,16 +333,21 @@ O objetivo da visita é sair com gravações reais de 3 a 5 pedidos, sem alterar
 
 | Risco | Efeito | O que fazer |
 | :---- | :---- | :---- |
-| Textos de status diferentes do previsto (só AGUARDANDO é confirmado) | Detector não abre ou fecha etapas | Textos ficam em techmob.planta.* e no ciclo_padrao.json; ajustar com o resumo da primeira gravação |
-| Firewall bloqueia o acesso de outro notebook | Sem gravação real | Coletor no notebook do laboratório, com autorização do professor |
-| Bancada desligada no dia da banca | Sem dado ao vivo | Replay de gravação real (já é o plano) |
+| Textos de status além de AGUARDANDO não confirmados na bancada | Detector não abre ou fecha etapas se a bancada usar outros textos | Definidos com os do simulador (`PRODUZINDO`, `PARADO`) e configuráveis em techmob.planta.* e no ciclo_padrao.json |
+| ~~Firewall bloqueia o acesso de outro notebook~~ | ~~Sem gravação real~~ | Sem efeito desde 19/11: não haverá ida ao laboratório |
+| ~~Bancada desligada no dia da banca~~ | ~~Sem dado ao vivo~~ | Sem efeito desde 19/11: a demonstração roda com o simulador e não depende da bancada |
 | Node-RED devolve JSON inválido quando uma variável global está indefinida | Leitura perdida | Cliente trata como falha e o coletor guarda o texto bruto |
 | Contadores da bancada reiniciam ("só guarda o primeiro pedido") | Contagem errada | Pedido contado pelas transições; contadores usados só como diferença |
 | Qualidade só por pedido (aprovado ou reprovado) | Pedido reprovado tem OEE 0% | Explicar na apresentação; refinar se a bancada informar reprovação por peça |
-| Calendário (conclusão em dezembro de 2026) | Falta de tempo | Itens opcionais ficam por último: tabela leitura_planta e detalhe do pedido no Histórico |
+| A banca pergunta se os dados são reais | Credibilidade da solução | Resposta preparada: o contrato (JSON), o flow e o CLP são da bancada real (fotos de 14/09); os tempos são a cronometragem da equipe; o simulador responde o mesmo JSON e ligar a bancada é trocar a `PLANTA_URL` |
+| A demonstração ao vivo falha (MySQL, portas, rede) | Banca sem demo | Ensaio completo antes da banca e o vídeo da banca como reserva |
+| Calendário (conclusão em dezembro de 2026) | Falta de tempo | O código está entregue (os opcionais `leitura_planta` e detalhe do pedido também); o risco agora são o relatório, os slides e o vídeo |
 
-Pendências abertas:
+Pendências abertas (atualizadas em 20/11):
 
-- Tempos da cronometragem, etapa por etapa (para o seed e o ciclo_padrao.json).
-- Data da próxima ida ao laboratório e data da banca.
-- Valor da meta de OEE (o 75% atual estava fixo no código; confirmar com a equipe).
+- ~~Tempos da cronometragem~~: definidos (20/35/25 s, 80 s por pedido).
+- ~~Data da próxima ida ao laboratório~~: cancelada.
+- ~~Valor da meta de OEE~~: mantida em 75%.
+- Data da banca e duração da apresentação.
+- Relatório técnico em ABNT: o modelo do SENAI ainda não foi definido.
+- Slides e vídeos: deck novo, feito do zero, com o dashboard rodando com o simulador e as fotos de 14/09. Capturas das telas a fazer num ensaio completo (MySQL, simulador, backend e frontend).
