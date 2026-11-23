@@ -10,6 +10,10 @@ Basta trocar a URL. Dois modos:
   replay     reproduz uma gravação REAL feita pelo coletor_planta.py.
              É o modo da apresentação, quando a bancada não está ligada.
 
+Cada resposta leva o cabeçalho X-TechMob-Fonte (sintetico ou replay), para
+o backend gravar a origem certa do pedido. O Node-RED real não envia esse
+cabeçalho: sem ele, o backend entende que o dado veio da bancada.
+
 Usa só a biblioteca padrão do Python: nada para instalar.
 
 Uso:
@@ -36,6 +40,7 @@ from urllib.parse import urlsplit
 PASTA = Path(__file__).resolve().parent
 CONFIG_PADRAO = PASTA / "ciclo_padrao.json"
 ROTA = "/dadosPlanta"
+CABECALHO_FONTE = "X-TechMob-Fonte"
 ESTACOES = ("estoque", "manipulacao", "separacao")
 JANELA_15MIN_S = 15 * 60
 ATRASO_PRIMEIRO_PEDIDO_S = 5.0
@@ -212,7 +217,8 @@ class Replay:
 # Servidor HTTP
 # --------------------------------------------------------------------------
 
-def criar_handler(fonte: FonteDados, relogio: Callable[[], float], verboso: bool):
+def criar_handler(fonte: FonteDados, relogio: Callable[[], float], verboso: bool,
+                  nome_fonte: str = "sintetico"):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if urlsplit(self.path).path != ROTA:
@@ -224,6 +230,7 @@ def criar_handler(fonte: FonteDados, relogio: Callable[[], float], verboso: bool
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(corpo)))
+            self.send_header(CABECALHO_FONTE, nome_fonte)
             self.end_headers()
             self.wfile.write(corpo)
 
@@ -272,7 +279,7 @@ def main() -> None:
     def relogio() -> float:
         return (time.monotonic() - t0) * args.velocidade
 
-    servidor = ThreadingHTTPServer((args.host, args.porta), criar_handler(fonte, relogio, args.verboso))
+    servidor = ThreadingHTTPServer((args.host, args.porta), criar_handler(fonte, relogio, args.verboso, args.modo))
     print(f"Simulador ({args.modo}, {args.velocidade:g}x) em "
           f"http://{args.host}:{args.porta}{ROTA}  |  Ctrl+C para parar")
     try:
