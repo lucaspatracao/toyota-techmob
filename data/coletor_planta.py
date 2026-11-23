@@ -52,12 +52,16 @@ def ler_planta(url: str, timeout: float) -> tuple[dict | None, str | None, str |
         return None, None, f"sem_conexao: {exc}"
 
     try:
-        return json.loads(bruto), bruto, None
+        dados = json.loads(bruto)
     except json.JSONDecodeError:
         # O Node-RED da bancada monta o JSON concatenando texto. Se alguma
         # variável global estiver indefinida, o resultado deixa de ser JSON
         # válido. Guardamos o texto bruto para análise.
         return None, bruto, "json_invalido"
+
+    if not isinstance(dados, dict):
+        return None, bruto, "json_invalido: esperado um objeto JSON"
+    return dados, bruto, None
 
 
 class Gravador:
