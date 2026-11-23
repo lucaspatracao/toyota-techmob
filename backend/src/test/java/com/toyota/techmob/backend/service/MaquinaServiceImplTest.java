@@ -59,7 +59,7 @@ class MaquinaServiceImplTest {
         List<MaquinaDTO> resultado = maquinaService.listarTodas();
 
         assertThat(resultado).containsExactly(
-                new MaquinaDTO(1L, "BANCADA_SMART_01", "Bancada Smart 4.0", "EM_PRODUCAO"));
+                new MaquinaDTO(1L, "BANCADA_SMART_01", "Bancada Smart 4.0", "EM_PRODUCAO", null));
     }
 
     @Test
@@ -74,7 +74,7 @@ class MaquinaServiceImplTest {
         indicador.setCriadoEm(OffsetDateTime.parse("2026-08-17T10:00:00Z"));
 
         when(maquinaRepository.findById(1L)).thenReturn(Optional.of(maquina));
-        when(indicadorOEERepository.findTopByMaquinaIdOrderByCriadoEmDesc(1L)).thenReturn(Optional.of(indicador));
+        when(indicadorOEERepository.findTopByMaquinaIdOrderByPeriodoFimDesc(1L)).thenReturn(Optional.of(indicador));
 
         DashboardResponseDTO resultado = maquinaService.buscarDashboard(1L);
 
@@ -86,7 +86,7 @@ class MaquinaServiceImplTest {
     @Test
     void buscarDashboard_semIndicador_deveRetornarIndicadorNulo() {
         when(maquinaRepository.findById(1L)).thenReturn(Optional.of(maquinaExemplo()));
-        when(indicadorOEERepository.findTopByMaquinaIdOrderByCriadoEmDesc(1L)).thenReturn(Optional.empty());
+        when(indicadorOEERepository.findTopByMaquinaIdOrderByPeriodoFimDesc(1L)).thenReturn(Optional.empty());
 
         DashboardResponseDTO resultado = maquinaService.buscarDashboard(1L);
 

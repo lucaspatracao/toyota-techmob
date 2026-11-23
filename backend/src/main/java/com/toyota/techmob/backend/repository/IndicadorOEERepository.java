@@ -9,5 +9,6 @@ import java.util.Optional;
 public interface IndicadorOEERepository extends JpaRepository<IndicadorOEE, Long> {
     List<IndicadorOEE> findByMaquinaIdOrderByPeriodoInicioDesc(Long maquinaId);
 
-    Optional<IndicadorOEE> findTopByMaquinaIdOrderByCriadoEmDesc(Long maquinaId);
+    /** OEE do último pedido concluído da máquina. */
+    Optional<IndicadorOEE> findTopByMaquinaIdOrderByPeriodoFimDesc(Long maquinaId);
 }
