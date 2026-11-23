@@ -100,7 +100,7 @@ export default function Dashboard({ simulationEnabled = true, simulationState })
     periodSummary: mockPeriodSummary,
     updatedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
   }
-  const d = simulationState ?? data ?? simulatedData
+  const d = simulationState ?? data?.indicadorAtual ?? simulatedData
 
   // Sem indicador da SMART 4.0, mantém a tela em espera e não monta os gráficos.
   if (!simulationEnabled && !d) {
