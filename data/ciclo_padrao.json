@@ -1,0 +1,19 @@
+{
+  "_comentario": "Tempo padrão da Bancada Smart 4.0 (cronometragem da equipe). duracao_s = segundos de cada etapa de UM pedido. Os textos de 'status' vêm do Node-RED da bancada: confirme com o resumo do coletor_planta.py.",
+  "pecas_por_pedido": 3,
+  "status": {
+    "parado": "AGUARDANDO",
+    "operando": "PRODUZINDO",
+    "em_parada": "PARADO"
+  },
+  "etapas": [
+    { "estacao": "estoque", "descricao": "Retirada das peças do estoque", "duracao_s": 20 },
+    { "estacao": "manipulacao", "descricao": "Manipulador transporta as peças", "duracao_s": 35 },
+    { "estacao": "separacao", "descricao": "Esteira e separação por cor", "duracao_s": 25 }
+  ],
+  "intervalo_entre_pedidos_s": 30,
+  "variacao_pct": 10,
+  "chance_reprovacao": 0.1,
+  "chance_parada": 0.15,
+  "duracao_parada_s": [10, 40]
+}
