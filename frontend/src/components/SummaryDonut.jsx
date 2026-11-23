@@ -1,8 +1,8 @@
 /**
- * Anel com dois segmentos (peças boas / rejeitadas) usado no card
- * "Resumo (Últimas 24 horas)".
+ * Anel com dois segmentos (bons / rejeitados) usado no card "Resumo".
+ * `unit`: o que está sendo contado, escrito abaixo do total (ex.: "pedidos").
  */
-export default function SummaryDonut({ good, rejected, size = 190, stroke = 18 }) {
+export default function SummaryDonut({ good, rejected, size = 190, stroke = 18, unit = 'peças' }) {
   const total = good + rejected
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
@@ -41,7 +41,7 @@ export default function SummaryDonut({ good, rejected, size = 190, stroke = 18 }
         {total.toLocaleString('pt-BR')}
       </text>
       <text x="50%" y="60%" textAnchor="middle" fontSize={size * 0.09} fill="var(--text-tertiary)">
-        peças
+        {unit}
       </text>
     </svg>
   )
