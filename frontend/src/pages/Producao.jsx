@@ -45,19 +45,41 @@ export default function Producao({ planta = null }) {
   const [faixaId, setFaixaId] = useState('HOJE')
   const faixa = FAIXAS.find((f) => f.id === faixaId)
 
+  const seletorPeriodo = (
+    <div className="range-toggle" role="group" aria-label="Período">
+      {FAIXAS.map((f) => (
+        <button key={f.id} className={f.id === faixaId ? 'active' : ''} aria-pressed={f.id === faixaId}
+          onClick={() => setFaixaId(f.id)}>
+          {f.rotulo}
+        </button>
+      ))}
+    </div>
+  )
+
+  // Cada faixa começa com sua própria consulta. O polling pode manter dados
+  // durante uma atualização, desde que pertençam à faixa selecionada.
+  return <ProducaoPeriodo key={faixaId} planta={planta} faixa={faixa} seletorPeriodo={seletorPeriodo} />
+}
+
+function ProducaoPeriodo({ planta, faixa, seletorPeriodo }) {
   const { data: pedidos, loading, error, atualizadoEm, recarregar } = usePolling(
     () => listarPedidos(MAQUINA_ID, { de: faixa.de() }).then(adaptPedidos),
-    [MAQUINA_ID, faixaId],
+    [MAQUINA_ID],
     INTERVALO_MS
   )
 
-  if (loading && !pedidos) return <LoadingState label="Carregando produção..." />
   if (!pedidos) {
     return (
-      <ErrorState
-        message="Não foi possível conectar à API. Confira se o backend está rodando (porta 8080)."
-        onRetry={recarregar}
-      />
+      <Panel title="Produção" right={seletorPeriodo}>
+        {loading ? (
+          <LoadingState label="Carregando produção..." />
+        ) : (
+          <ErrorState
+            message="Não foi possível carregar os pedidos do período selecionado."
+            onRetry={recarregar}
+          />
+        )}
+      </Panel>
     )
   }
 
@@ -120,16 +142,7 @@ export default function Producao({ planta = null }) {
           className="chart-panel"
           title="TEMPO DE CADA ETAPA POR PEDIDO"
           subtitle={concluidos.length > MAX_PEDIDOS_GRAFICO ? `Os ${MAX_PEDIDOS_GRAFICO} pedidos mais recentes do período` : undefined}
-          right={
-            <div className="range-toggle" role="group" aria-label="Período">
-              {FAIXAS.map((f) => (
-                <button key={f.id} className={f.id === faixaId ? 'active' : ''} aria-pressed={f.id === faixaId}
-                  onClick={() => setFaixaId(f.id)}>
-                  {f.rotulo}
-                </button>
-              ))}
-            </div>
-          }
+          right={seletorPeriodo}
         >
           <div className="chart-legend">
             {ESTACOES.map((e) => (
