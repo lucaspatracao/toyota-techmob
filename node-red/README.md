@@ -1,6 +1,6 @@
 # Node-RED da Bancada Smart 4.0 (somente leitura)
 
-A Bancada Smart 4.0 do laboratório tem um Node-RED próprio, que conversa com o CLP. É dele que o TechMob tira o dado: uma consulta `GET /dadosPlanta` na porta 1880, a cada 1 segundo.
+A Bancada Smart 4.0 do laboratório tem um Node-RED próprio, que conversa com o CLP. O JSON do `GET /dadosPlanta` dele é o contrato de dados do TechMob: o backend consulta essa rota na porta 1880 a cada 1 segundo, na bancada ou no simulador, que responde o mesmo JSON.
 
 **O TechMob só lê esse Node-RED.** Nada é instalado, importado ou alterado nele, e o projeto não roda um Node-RED próprio. Esta pasta existe para documentar o da bancada.
 
@@ -67,7 +67,7 @@ Lido em `localhost:1880/dadosPlanta` em 14/09/2026, com a bancada parada depois 
 | `total_pedidos`, `pedidos15min` | contador | Só conferência; a bancada guarda só o primeiro pedido, então não serve para contar |
 | `Temperatura`, `Umidade` | número | Ignorados: chegam sempre 0, a bancada não tem esses sensores |
 
-Só o texto `AGUARDANDO` está confirmado. Os outros textos de status (`PRODUZINDO`, `PARADO`...) ficam configuráveis no backend (`techmob.planta.*`) e no `data/ciclo_padrao.json`, e são conferidos com o resumo que o coletor mostra ao encerrar.
+`AGUARDANDO` é o texto lido na bancada (foto do JSON). `PRODUZINDO` e `PARADO` são os usados pelo simulador e ficam configuráveis no backend (`techmob.planta.*`) e no `data/ciclo_padrao.json`.
 
 ## Como o TechMob usa
 
@@ -75,9 +75,8 @@ Só o texto `AGUARDANDO` está confirmado. Os outros textos de status (`PRODUZIN
 |---|---|---|
 | `data/coletor_planta.py` | `python data/coletor_planta.py --url http://<IP>:1880/dadosPlanta` | Grava as mudanças em `data/gravacoes/*.jsonl`. `Ctrl+C` encerra e mostra o resumo dos status |
 | Backend | Variável `PLANTA_URL` (padrão `http://localhost:1880/dadosPlanta`) | Consulta a cada 1 s. Depois de 3 falhas seguidas, lê o simulador (`PLANTA_URL_FALLBACK`) |
-| `data/simulador_planta.py` | Mesma rota e mesmo JSON (porta 1881 quando usado como fallback) | Reproduz uma gravação real (replay) quando a bancada não está disponível |
+| `data/simulador_planta.py` | Mesma rota e mesmo JSON, na porta 1880 (ou 1881 como reserva da bancada) | Fonte padrão do sistema: gera os pedidos com a cronometragem da equipe (sintético) ou reproduz uma gravação (replay) |
 
-Se o firewall do notebook do laboratório bloquear o acesso de outro computador, o coletor roda no próprio notebook do laboratório, lendo `localhost`, com autorização do professor.
 
 ## Cuidados conhecidos
 

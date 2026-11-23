@@ -6,14 +6,14 @@
 
 ## Objetivo
 
-O TechMob 4.0 monitora a **Bancada Smart 4.0** do laboratório (CLP Siemens ET 200SP). Ele lê o estado da bancada a cada segundo, identifica cada pedido de 3 peças, calcula o **OEE por pedido** (Disponibilidade × Performance × Qualidade) e mostra tudo num dashboard web.
+O TechMob 4.0 monitora a **Bancada Smart 4.0** do laboratório (CLP Siemens ET 200SP). A cada segundo ele lê o estado da bancada no `GET /dadosPlanta` (do Node-RED dela ou do simulador, que responde o mesmo JSON), identifica cada pedido de 3 peças, calcula o **OEE por pedido** (Disponibilidade × Performance × Qualidade) e mostra tudo num dashboard web.
 
 | Eixo da demanda | Como o TechMob atende | Onde |
 |---|---|---|
 | Monitoramento de processos | Status das 3 estações (Andon) e pedido em andamento, atualizados a cada 2 s | Dashboard |
 | Análise de dados | OEE por pedido e tempo de cada etapa comparado ao tempo padrão | Produção, Histórico |
 | Apoio à tomada de decisão | Alerta quando o pedido passa do padrão ou o OEE fica abaixo da meta; estação gargalo em destaque | Dashboard, Produção |
-| Aplicação em ambiente produtivo | Dados da bancada real, gravados no laboratório e reproduzidos na apresentação | Coletor e replay |
+| Aplicação em ambiente produtivo | Contrato e regras tirados da bancada real: o JSON do `/dadosPlanta`, o flow do Node-RED e o CLP ET 200SP ([fotos](docs/img/)); o simulador reproduz esse JSON com a cronometragem da equipe | Simulador e backend |
 
 ## Arquitetura
 
@@ -21,9 +21,9 @@ O TechMob 4.0 monitora a **Bancada Smart 4.0** do laboratório (CLP Siemens ET 2
 flowchart LR
     B["Bancada Smart 4.0<br/>CLP Siemens ET 200SP"] -- PROFINET --> N["Node-RED da bancada<br/>GET /dadosPlanta :1880<br/>somente leitura"]
     N -- "lê a cada 1 s" --> C["coletor_planta.py<br/>grava gravacoes/*.jsonl"]
-    C -- "gravação real" --> S["simulador_planta.py<br/>replay ou sintético"]
-    N -- primário --> P
-    S -. fallback .-> P
+    C -- "gravação" --> S["simulador_planta.py<br/>sintético ou replay"]
+    S -- "fonte padrão (mesmo JSON)" --> P
+    N -. "bancada real" .-> P
     subgraph BE["Backend Spring Boot (pacote coleta)"]
         P["PlantaClient"] --> D["DetectorPedidos"] --> O["CalculadoraOEE"] --> A["Services e API REST"]
     end
@@ -34,12 +34,12 @@ flowchart LR
 - **A fonte é o Node-RED da bancada, e ele só é lido.** O backend consulta `GET /dadosPlanta` a cada 1 s; nada é instalado ou alterado na bancada ([`node-red/README.md`](node-red/README.md)).
 - **O simulador entrega o mesmo JSON.** Para o backend, trocar a bancada pelo simulador é só trocar a URL. Cada pedido grava a origem do dado: `BANCADA`, `REPLAY` ou `SINTETICO`.
 - **O OEE é calculado em um lugar só: o backend.** O Python fica com a coleta, a simulação e a análise das gravações, e serve de conferência do cálculo.
-- **Na apresentação, o dashboard roda em replay** de uma execução real gravada no laboratório, porque a bancada não sai de lá.
+- **A fonte padrão é o simulador da bancada**, montado sobre o JSON lido no `/dadosPlanta` em 14/09/2026 e a cronometragem da equipe (20 s, 35 s e 25 s por etapa). O backend lê a bancada real ou o simulador sem mudar uma linha de código: só a `PLANTA_URL`.
 
 | Camada | Tecnologia | Responsabilidade |
 |---|---|---|
 | Fonte de dados | Bancada Smart 4.0, Node-RED da bancada | Estado das estações e contadores, em `GET /dadosPlanta` |
-| Coleta e simulação | Python (biblioteca padrão) | Gravar as execuções reais e reproduzi-las ([`data/`](data/README.md)) |
+| Simulação e coleta | Python (biblioteca padrão) | Simular a bancada com o mesmo JSON do `/dadosPlanta`, gravar e reproduzir execuções ([`data/`](data/README.md)) |
 | Back-end | Java 25, Spring Boot, Spring Data JPA | Ler a bancada, identificar os pedidos, calcular o OEE, gravar e servir a API REST ([`backend/`](backend/README.md)) |
 | Persistência | MySQL 8 local | Máquina, pedidos, etapas, indicadores e leituras brutas |
 | Front-end | React, Vite, Axios, Recharts | Dashboard, Produção e Histórico ([`frontend/`](frontend/README.md)) |
@@ -108,22 +108,16 @@ A senha do banco vem do ambiente (os outros dados têm padrão; ver [`backend/RE
 $env:DB_PASSWORD = "sua-senha"
 ```
 
-### 2. Fonte de dados: bancada ou simulador
+### 2. Fonte de dados: o simulador da bancada
 
-**No laboratório, com a bancada ligada:** não há nada para rodar. Aponte o backend para o Node-RED da bancada (passo 3) com `PLANTA_URL=http://<IP do notebook do laboratório>:1880/dadosPlanta`. Para gravar a execução:
-
-```powershell
-python data/coletor_planta.py --url http://<IP>:1880/dadosPlanta
-```
-
-**Sem a bancada:** suba o simulador, que responde na mesma rota da bancada (`http://localhost:1880/dadosPlanta`, o padrão do backend):
+Suba o simulador, que responde na mesma rota e com o mesmo JSON da bancada (`http://localhost:1880/dadosPlanta`, o padrão do backend):
 
 ```powershell
 python data/simulador_planta.py                                             # pedidos sintéticos
-python data/simulador_planta.py --modo replay --gravacao data/gravacoes/<sessao>.jsonl   # execução real gravada
+python data/simulador_planta.py --modo replay --gravacao data/gravacoes/<sessao>.jsonl   # reproduz uma gravação
 ```
 
-Com a bancada como fonte principal, o simulador pode ficar de reserva na porta 1881 (`--porta 1881`): depois de 3 falhas seguidas na bancada, o backend passa a ler o simulador (`PLANTA_URL_FALLBACK`). Detalhes em [`data/README.md`](data/README.md).
+**Com a bancada real ligada**, aponte o backend para o Node-RED dela (passo 3) com `PLANTA_URL=http://<IP do Node-RED da bancada>:1880/dadosPlanta` e deixe o simulador de reserva na porta 1881 (`--porta 1881`): depois de 3 falhas seguidas na bancada, o backend passa a ler o simulador (`PLANTA_URL_FALLBACK`). Para gravar uma execução, use `python data/coletor_planta.py --url http://<IP>:1880/dadosPlanta`. Detalhes em [`data/README.md`](data/README.md).
 
 ### 3. Backend (coleta e API)
 
@@ -152,7 +146,7 @@ Abra http://localhost:5173. Telas e variáveis `VITE_*` em [`frontend/README.md`
 
 | Serviço | Porta |
 |---|---|
-| Node-RED da bancada, ou simulador no lugar dela | 1880 |
+| Simulador da bancada (ou o Node-RED da bancada real) | 1880 |
 | Simulador de reserva (fallback) | 1881 |
 | Backend (Spring Boot) | 8080 |
 | Frontend (Vite) | 5173 |
@@ -168,13 +162,16 @@ Abra http://localhost:5173. Telas e variáveis `VITE_*` em [`frontend/README.md`
 
 Backend e Python usam as mesmas gravações de teste (`data/tests/gravacoes/` e `backend/src/test/resources/gravacoes/`) e conferem os mesmos números de OEE.
 
-## Pendências
+## Valores do projeto
 
-- **Ida ao laboratório:** gravar de 3 a 5 pedidos reais (checklist em [`docs/PLANO_ALINHAMENTO.md`](docs/PLANO_ALINHAMENTO.md#checklist-do-dia-no-laboratório)). Sem gravação real, a apresentação roda em modo sintético.
-- **Tempo padrão real:** 80 s por pedido (20 s estoque, 35 s manipulação, 25 s separação) é provisório. Depois da gravação, rodar `analisar_cronometragem.py --atualizar` e levar os valores para `TEMPO_PADRAO_*_S` e para o seed do `schema.sql`.
-- **Textos de status:** só `AGUARDANDO` está confirmado; conferir os outros com o resumo do coletor (`PLANTA_STATUS_*` e `ciclo_padrao.json`).
-- **Meta de OEE:** 75% é provisório (`META_OEE`).
-- **Fotos** do Node-RED e da bancada para [`node-red/fotos/`](node-red/fotos/README.md).
+| Item | Valor | Onde fica |
+|---|---|---|
+| Tempo padrão | 20 s estoque, 35 s manipulação, 25 s separação (80 s por pedido) | `TEMPO_PADRAO_*_S`, `data/ciclo_padrao.json`, seed do `schema.sql` |
+| Meta de OEE | 75% | `META_OEE` |
+| Textos de status | `AGUARDANDO` (lido na bancada), `PRODUZINDO`, `PARADO` | `PLANTA_STATUS_*`, `data/ciclo_padrao.json` |
+| Peças por pedido | 3 | seed do `schema.sql`, `data/ciclo_padrao.json` |
+
+As fotos do laboratório (Node-RED, JSON, CLP e bancada) estão em [`docs/img/`](docs/img/) e no [`node-red/README.md`](node-red/README.md#fotos-laboratório-14092026).
 
 ## Equipe TechMob 4.0
 

@@ -42,10 +42,10 @@ A coleta (propriedades `techmob.*` em `application.properties`, lidas pelo `Plan
 | `PLANTA_INTERVALO_MS` | `techmob.planta.intervalo-ms` | `1000` | Intervalo entre leituras |
 | `PLANTA_TIMEOUT_MS` | `techmob.planta.timeout-ms` | `2000` | Tempo máximo de cada leitura |
 | `PLANTA_SEGUNDOS_SEM_CONEXAO` | `techmob.planta.segundos-sem-conexao` | `10` | Sem leitura boa por mais que isso, o pedido aberto vira `INTERROMPIDO` |
-| `PLANTA_STATUS_PARADO` | `techmob.planta.status-parado` | `AGUARDANDO` | Texto da estação ociosa (confirmado) |
-| `PLANTA_STATUS_PARADA` | `techmob.planta.status-parada` | `PARADO` | Texto da estação em parada (provisório) |
-| `META_OEE` | `techmob.planta.meta-oee` | `75` | Meta de OEE em % (provisório) |
-| `TEMPO_PADRAO_ESTOQUE_S`, `TEMPO_PADRAO_MANIPULACAO_S`, `TEMPO_PADRAO_SEPARACAO_S` | `techmob.planta.tempo-padrao-s.*` | `20`, `35`, `25` | Cronometragem de cada estação (provisória; a mesma do `data/ciclo_padrao.json`) |
+| `PLANTA_STATUS_PARADO` | `techmob.planta.status-parado` | `AGUARDANDO` | Texto da estação ociosa (o lido na bancada) |
+| `PLANTA_STATUS_PARADA` | `techmob.planta.status-parada` | `PARADO` | Texto da estação em parada (o do simulador) |
+| `META_OEE` | `techmob.planta.meta-oee` | `75` | Meta de OEE em % |
+| `TEMPO_PADRAO_ESTOQUE_S`, `TEMPO_PADRAO_MANIPULACAO_S`, `TEMPO_PADRAO_SEPARACAO_S` | `techmob.planta.tempo-padrao-s.*` | `20`, `35`, `25` | Cronometragem de cada estação (a mesma do `data/ciclo_padrao.json`) |
 
 ## Execução local
 
@@ -78,7 +78,7 @@ Pedido 12 concluído em 97 s: OEE 80.000%
 
 Pedidos que ficaram `EM_ANDAMENTO` porque o backend parou no meio viram `INTERROMPIDO` na próxima subida.
 
-### Contra o simulador (sem a bancada)
+### Fonte de dados: o simulador (padrão)
 
 Em outro terminal, suba o simulador na porta padrão da bancada; o backend não precisa de nenhuma variável a mais:
 
@@ -87,10 +87,10 @@ python data/simulador_planta.py                                            # ped
 python data/simulador_planta.py --modo replay --gravacao data/gravacoes/<sessao>.jsonl
 ```
 
-No laboratório, aponte para a bancada e deixe o simulador de reserva na 1881:
+Com a bancada real ligada, aponte para ela e deixe o simulador de reserva na 1881:
 
 ```powershell
-$env:PLANTA_URL = "http://<IP do notebook do laboratório>:1880/dadosPlanta"
+$env:PLANTA_URL = "http://<IP do Node-RED da bancada>:1880/dadosPlanta"
 python data/simulador_planta.py --modo replay --gravacao data/gravacoes/<sessao>.jsonl --porta 1881
 ```
 
@@ -150,7 +150,7 @@ Convenções do JSON:
 
 ### Exemplos de resposta
 
-Os números abaixo usam os tempos provisórios (padrão de 80 s por pedido) e o pedido do exemplo do plano: 100 s de lead time com 12 s parado, OEE de 80%.
+Os números abaixo usam os tempos do projeto (padrão de 80 s por pedido) e o pedido do exemplo do plano: 100 s de lead time com 12 s parado, OEE de 80%.
 
 `GET /api/maquinas`
 
@@ -213,7 +213,7 @@ Os números abaixo usam os tempos provisórios (padrão de 80 s por pedido) e o 
 
 - `planta` é o mesmo objeto de `/api/planta/1/status` (resumido acima).
 - `indicadorAtual` é o OEE do último pedido concluído; vem `null` enquanto não houver nenhum.
-- `resumoHoje` vai da meia-noite à meia-noite no fuso do servidor (no laboratório, o de Brasília) e conta só pedidos concluídos (os interrompidos aparecem à parte). O OEE do resumo **soma os tempos** de todos os pedidos e aplica a fórmula uma vez; não é a média dos OEEs. Sem pedido concluído no dia, as médias, a taxa e o OEE vêm `null`.
+- `resumoHoje` vai da meia-noite à meia-noite no fuso do servidor (o de Brasília) e conta só pedidos concluídos (os interrompidos aparecem à parte). O OEE do resumo **soma os tempos** de todos os pedidos e aplica a fórmula uma vez; não é a média dos OEEs. Sem pedido concluído no dia, as médias, a taxa e o OEE vêm `null`.
 - `metaOee` vem da variável `META_OEE` (padrão 75).
 
 `GET /api/pedidos/1?de=2026-11-17T03:00:00Z&ate=2026-11-18T03:00:00Z&origem=REPLAY`
@@ -316,4 +316,4 @@ O banco é local e ainda não tem dado real, então a troca de versão é recria
 DROP DATABASE techmob;
 ```
 
-e rode o [`infra/schema.sql`](../infra/schema.sql) de novo. O seed volta com a máquina `id = 1` e o tempo padrão provisório de 80 s por pedido.
+e rode o [`infra/schema.sql`](../infra/schema.sql) de novo. O seed volta com a máquina `id = 1` e o tempo padrão de 80 s por pedido.
