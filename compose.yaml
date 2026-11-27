@@ -1,0 +1,79 @@
+name: toyota-techmob
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: techmob
+      MYSQL_USER: ${MYSQL_USER:-techmob}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./infra/schema.sql:/opt/techmob/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" techmob -e 'SELECT id FROM maquina LIMIT 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+    networks: [techmob]
+  simulator:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:1880/dadosPlanta', timeout=2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [techmob]
+  backend:
+    build: .
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: techmob
+      DB_USER: ${MYSQL_USER:-techmob}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}
+      PLANTA_URL: ${PLANTA_URL:-http://simulator:1880/dadosPlanta}
+      PLANTA_URL_FALLBACK: http://simulator:1880/dadosPlanta
+    depends_on:
+      db:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks: [techmob]
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    networks: [techmob]
+  analysis:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    entrypoint: ["python"]
+    command: ["data/oee_calculator.py", "--help"]
+    volumes:
+      - recordings:/app/data/gravacoes
+      - results:/app/data/resultados
+    networks: [techmob]
+volumes:
+  mysql_data:
+  recordings:
+  results:
+networks:
+  techmob:
+    driver: bridge
